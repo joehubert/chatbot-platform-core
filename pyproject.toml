@@ -1,0 +1,390 @@
+[build-system]
+requires = ["hatchling>=1.13.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chatbot-platform-core"
+description = "Enterprise-grade chatbot platform for SMEs with RAG, intelligent routing, and comprehensive monitoring"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Chatbot Platform Team", email = "team@chatbot-platform.com"}
+]
+maintainers = [
+    {name = "Chatbot Platform Team", email = "team@chatbot-platform.com"}
+]
+keywords = [
+    "chatbot",
+    "ai",
+    "llm",
+    "rag",
+    "fastapi",
+    "langchain",
+    "langraph",
+    "enterprise",
+    "sme"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Chat",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: FastAPI",
+    "Framework :: AsyncIO",
+]
+requires-python = ">=3.11"
+dependencies = [
+    # Core Framework
+    "fastapi>=0.109.0,<1.0.0",
+    "uvicorn[standard]>=0.25.0,<1.0.0",
+    "gunicorn>=21.2.0,<22.0.0",
+    
+    # Async Support
+    "asyncpg>=0.29.0,<1.0.0",
+    "aiofiles>=23.2.1,<24.0.0",
+    "httpx>=0.26.0,<1.0.0",
+    
+    # Database & ORM
+    "sqlalchemy>=2.0.25,<3.0.0",
+    "alembic>=1.13.1,<2.0.0",
+    "psycopg2-binary>=2.9.9,<3.0.0",
+    
+    # Caching & Queue
+    "redis>=5.0.1,<6.0.0",
+    "hiredis>=2.3.2,<3.0.0",
+    
+    # Authentication & Security
+    "python-jose[cryptography]>=3.3.0,<4.0.0",
+    "passlib[bcrypt]>=1.7.4,<2.0.0",
+    "python-multipart>=0.0.6,<1.0.0",
+    "cryptography>=42.0.0,<43.0.0",
+    
+    # Data Validation & Serialization
+    "pydantic>=2.5.3,<3.0.0",
+    "pydantic-settings>=2.1.0,<3.0.0",
+    "email-validator>=2.1.0,<3.0.0",
+    
+    # LLM Providers
+    "openai>=1.12.0,<2.0.0",
+    "anthropic>=0.12.0,<1.0.0",
+    "transformers>=4.37.2,<5.0.0",
+    "torch>=2.1.2,<3.0.0",
+    "sentence-transformers>=2.2.2,<3.0.0",
+    
+    # LangChain & LangGraph
+    "langchain>=0.1.6,<1.0.0",
+    "langchain-openai>=0.0.5,<1.0.0",
+    "langchain-anthropic>=0.1.1,<1.0.0",
+    "langchain-huggingface>=0.0.1,<1.0.0",
+    "langgraph>=0.0.26,<1.0.0",
+    "langchain-community>=0.0.19,<1.0.0",
+    
+    # Vector Databases
+    "pinecone-client>=3.0.2,<4.0.0",
+    "chromadb>=0.4.21,<1.0.0",
+    "weaviate-client>=3.25.3,<4.0.0",
+    "pgvector>=0.2.4,<1.0.0",
+    
+    # Document Processing
+    "pypdf2>=3.0.1,<4.0.0",
+    "python-docx>=1.1.0,<2.0.0",
+    "python-markdown>=3.5.2,<4.0.0",
+    "beautifulsoup4>=4.12.3,<5.0.0",
+    "unstructured>=0.12.4,<1.0.0",
+    
+    # Communication Services
+    "twilio>=8.12.0,<9.0.0",
+    "sendgrid>=6.11.0,<7.0.0",
+    
+    # Monitoring & Logging
+    "structlog>=23.2.0,<24.0.0",
+    "loguru>=0.7.2,<1.0.0",
+    
+    # Configuration & Environment
+    "python-dotenv>=1.0.0,<2.0.0",
+    "pyyaml>=6.0.1,<7.0.0",
+    "click>=8.1.7,<9.0.0",
+    
+    # Utilities
+    "python-slugify>=8.0.1,<9.0.0",
+    "phonenumbers>=8.13.27,<9.0.0",
+    "tenacity>=8.2.3,<9.0.0",
+    "shortuuid>=1.0.11,<2.0.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.4.4,<8.0.0",
+    "pytest-asyncio>=0.23.3,<1.0.0",
+    "pytest-mock>=3.12.0,<4.0.0",
+    "pytest-cov>=4.1.0,<5.0.0",
+    "faker>=22.2.0,<23.0.0",
+    
+    # Code Quality
+    "black>=23.12.1,<24.0.0",
+    "isort>=5.13.2,<6.0.0",
+    "flake8>=7.0.0,<8.0.0",
+    "mypy>=1.8.0,<2.0.0",
+    "pre-commit>=3.6.0,<4.0.0",
+    
+    # Development Tools
+    "watchdog>=3.0.0,<4.0.0",
+]
+
+production = [
+    # Production optimizations
+    "gunicorn>=21.2.0,<22.0.0",
+    "prometheus-client>=0.19.0,<1.0.0",
+    "sentry-sdk[fastapi]>=1.40.0,<2.0.0",
+]
+
+all = [
+    "chatbot-platform-core[dev,production]"
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/chatbot-platform-core"
+Documentation = "https://docs.chatbot-platform.com"
+Repository = "https://github.com/your-org/chatbot-platform-core"
+"Bug Tracker" = "https://github.com/your-org/chatbot-platform-core/issues"
+Changelog = "https://github.com/your-org/chatbot-platform-core/blob/main/CHANGELOG.md"
+
+[project.scripts]
+chatbot-platform = "app.main:main"
+
+[tool.hatch.version]
+path = "app/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ===============================================
+# Black Configuration
+# ===============================================
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | alembic/versions
+)/
+'''
+
+# ===============================================
+# isort Configuration
+# ===============================================
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["app", "tests"]
+known_third_party = [
+    "fastapi",
+    "sqlalchemy",
+    "pydantic",
+    "redis",
+    "langchain",
+    "langgraph",
+    "openai",
+    "anthropic",
+    "pytest"
+]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+default_section = "THIRDPARTY"
+force_grid_wrap = 0
+use_parentheses = true
+include_trailing_comma = true
+ensure_newline_before_comments = true
+
+# ===============================================
+# MyPy Configuration
+# ===============================================
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pinecone",
+    "chromadb",
+    "weaviate",
+    "twilio.*",
+    "sendgrid.*",
+    "unstructured.*",
+    "transformers.*",
+    "sentence_transformers.*",
+]
+ignore_missing_imports = true
+
+# ===============================================
+# Pytest Configuration
+# ===============================================
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+    "-v"
+]
+testpaths = [
+    "tests",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "e2e: marks tests as end-to-end tests",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+# ===============================================
+# Coverage Configuration
+# ===============================================
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/alembic/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/env/*",
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+# ===============================================
+# Flake8 Configuration (in setup.cfg format for compatibility)
+# ===============================================
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long (handled by black)
+    "W503",  # line break before binary operator
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs/source/conf.py",
+    "old",
+    "build",
+    "dist",
+    "alembic/versions",
+    ".venv",
+    "venv",
+]
+per-file-ignores = [
+    "__init__.py:F401",  # imported but unused
+]
+
+# ===============================================
+# Bandit Security Linting
+# ===============================================
+[tool.bandit]
+exclude_dirs = ["tests", "alembic"]
+skips = ["B101", "B601"]  # Skip assert_used and shell injection for tests
+
+# ===============================================
+# Pre-commit Configuration
+# ===============================================
+[tool.pre-commit]
+repos = [
+    {
+        repo = "https://github.com/pre-commit/pre-commit-hooks",
+        rev = "v4.5.0",
+        hooks = [
+            "trailing-whitespace",
+            "end-of-file-fixer",
+            "check-yaml",
+            "check-added-large-files",
+            "check-merge-conflict",
+        ]
+    },
+    {
+        repo = "https://github.com/psf/black",
+        rev = "23.12.1",
+        hooks = ["black"]
+    },
+    {
+        repo = "https://github.com/pycqa/isort",
+        rev = "5.13.2",
+        hooks = ["isort"]
+    },
+    {
+        repo = "https://github.com/pycqa/flake8",
+        rev = "7.0.0",
+        hooks = ["flake8"]
+    },
+    {
+        repo = "https://github.com/pre-commit/mirrors-mypy",
+        rev = "v1.8.0",
+        hooks = ["mypy"]
+    },
+]
