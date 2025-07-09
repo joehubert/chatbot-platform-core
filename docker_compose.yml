@@ -47,7 +47,7 @@ services:
       # Vector Database (using Chroma for development)
       - VECTOR_DB_TYPE=chroma
       - CHROMA_HOST=chroma
-      - CHROMA_PORT=8000
+      - CHROMA_PORT=${CHROMA_PORT:8000}
       
       # LLM Configuration (add your API keys)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

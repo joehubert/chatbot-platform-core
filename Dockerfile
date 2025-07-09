@@ -13,8 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=1.7.1
+    PIP_DEFAULT_TIMEOUT=100
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -47,36 +46,19 @@ RUN mkdir -p /app /app/logs /app/uploads /app/temp \
     && chown -R appuser:appuser /app
 
 # ===============================================
-# Dependencies Stage
-# ===============================================
-FROM base as dependencies
-
-# Install Poetry
-RUN pip install poetry==$POETRY_VERSION
-
-# Copy dependency files
-COPY pyproject.toml poetry.lock* /app/
-
-# Set working directory
-WORKDIR /app
-
-# Configure poetry
-RUN poetry config virtualenvs.create false \
-    && poetry config virtualenvs.in-project false
-
-# Install dependencies
-RUN poetry install --only=main --no-dev --no-interaction --no-ansi
-
-# ===============================================
 # Development Stage
 # ===============================================
-FROM dependencies as development
+FROM base as development
 
-# Install development dependencies
-RUN poetry install --no-interaction --no-ansi
+# Copy dependency files
+COPY pyproject.toml /app/
+WORKDIR /app
 
-# Copy source code
+# Copy source code (needed for -e install)
 COPY --chown=appuser:appuser . /app/
+
+# Install development dependencies with editable install
+RUN pip install --no-cache-dir -e ".[dev]"
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/uploads /app/temp /app/static \
@@ -84,9 +66,6 @@ RUN mkdir -p /app/logs /app/uploads /app/temp /app/static \
 
 # Switch to application user
 USER appuser
-
-# Set working directory
-WORKDIR /app
 
 # Expose port
 EXPOSE 8000
@@ -103,22 +82,17 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 # ===============================================
 FROM base as production-deps
 
-# Install Poetry
-RUN pip install poetry==$POETRY_VERSION
-
 # Copy dependency files
-COPY pyproject.toml poetry.lock* /app/
-
-# Set working directory
+COPY pyproject.toml /app/
 WORKDIR /app
 
-# Configure poetry for production
-RUN poetry config virtualenvs.create false \
-    && poetry config virtualenvs.in-project false
+# Copy source code (needed for package install)
+COPY app/ /app/app/
+COPY alembic/ /app/alembic/
+COPY alembic.ini /app/
 
 # Install only production dependencies
-RUN poetry install --only=main,production --no-dev --no-interaction --no-ansi \
-    && pip install gunicorn==21.2.0
+RUN pip install --no-cache-dir ".[production]"
 
 # ===============================================
 # Production Stage
@@ -177,7 +151,7 @@ COPY --chown=appuser:appuser alembic.ini /app/
 COPY --chown=appuser:appuser pyproject.toml /app/
 
 # Create gunicorn configuration
-COPY --chown=appuser:appuser <<EOF /app/gunicorn.conf.py
+RUN cat > /app/gunicorn.conf.py << 'EOF'
 import multiprocessing
 import os
 
@@ -219,6 +193,9 @@ keyfile = None
 certfile = None
 EOF
 
+# Fix ownership
+RUN chown appuser:appuser /app/gunicorn.conf.py
+
 # Switch to application user
 USER appuser
 
@@ -240,11 +217,11 @@ CMD ["gunicorn", "--config", "gunicorn.conf.py", "app.main:app"]
 # ===============================================
 FROM development as testing
 
-# Install additional testing tools
-RUN poetry install --with=dev --no-interaction --no-ansi
-
 # Copy test files
 COPY --chown=appuser:appuser tests/ /app/tests/
+
+# Switch to application user
+USER appuser
 
 # Default command for testing
 CMD ["pytest", "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missing"]
@@ -253,13 +230,6 @@ CMD ["pytest", "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missin
 # Migration Stage
 # ===============================================
 FROM production-deps as migration
-
-# Copy migration files
-COPY --chown=appuser:appuser alembic/ /app/alembic/
-COPY --chown=appuser:appuser alembic.ini /app/
-COPY --chown=appuser:appuser app/models/ /app/app/models/
-COPY --chown=appuser:appuser app/core/config.py /app/app/core/config.py
-COPY --chown=appuser:appuser app/__init__.py /app/app/__init__.py
 
 # Create application user
 RUN groupadd --gid 1000 appuser \
@@ -284,11 +254,11 @@ ARG VERSION
 
 # Add labels
 LABEL maintainer="Chatbot Platform Team <team@chatbot-platform.com>" \
-      org.label-schema.build-date=$BUILD_DATE \
-      org.label-schema.name="chatbot-platform-core" \
-      org.label-schema.description="Enterprise-grade chatbot platform for SMEs" \
-      org.label-schema.url="https://github.com/your-org/chatbot-platform-core" \
-      org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.vcs-url="https://github.com/your-org/chatbot-platform-core" \
-      org.label-schema.version=$VERSION \
-      org.label-schema.schema-version="1.0"
+    org.label-schema.build-date=$BUILD_DATE \
+    org.label-schema.name="chatbot-platform-core" \
+    org.label-schema.description="Enterprise-grade chatbot platform for SMEs" \
+    org.label-schema.url="https://github.com/your-org/chatbot-platform-core" \
+    org.label-schema.vcs-ref=$VCS_REF \
+    org.label-schema.vcs-url="https://github.com/your-org/chatbot-platform-core" \
+    org.label-schema.version=$VERSION \
+    org.label-schema.schema-version="1.0"
