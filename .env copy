@@ -18,6 +18,10 @@ HUGGINGFACE_API_KEY=
 AZURE_OPENAI_ENDPOINT=
 AZURE_OPENAI_API_KEY=
 
+# --- Vector Database (Only if using a cloud provider like Pinecone) ---
+PINECONE_API_KEY=
+PINECONE_ENVIRONMENT=
+
 # --- Communication Services (Optional) ---
 # Twilio for SMS
 TWILIO_ACCOUNT_SID=
@@ -33,33 +37,6 @@ SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=
 SMTP_PASSWORD=
-
-
-# =======================================================
-# VECTOR DATABASE CONFIGURATION
-# =======================================================
-
-# --- Pluggable Vector Database Selection ---
-# Choose one: pinecone, chroma, weaviate, pgvector
-# 'chroma' is the default for local development with Docker Compose
-VECTOR_DB_TYPE=chroma
-
-# --- Pinecone Configuration ---
-# Required if VECTOR_DB_TYPE=pinecone
-PINECONE_API_KEY=
-PINECONE_ENVIRONMENT=
-PINECONE_INDEX_NAME=chatbot-knowledge-base
-
-# --- Chroma Configuration ---
-# These are used by the chatbot-api service to find the Chroma container.
-# The default values match the docker-compose.yml setup.
-CHROMA_HOST=chroma
-CHROMA_PORT=8000
-
-# --- Weaviate Configuration ---
-# Required if VECTOR_DB_TYPE=weaviate
-# WEAVIATE_URL=http://weaviate:8080
-# WEAVIATE_API_KEY=
 
 
 # =======================================================
