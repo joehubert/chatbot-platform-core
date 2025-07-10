@@ -6,7 +6,7 @@
 # ===============================================
 # Base Python Image
 # ===============================================
-FROM python:3.11-slim-bookworm as base
+FROM python:3.11-slim-bookworm AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -48,7 +48,7 @@ RUN mkdir -p /app /app/logs /app/uploads /app/temp \
 # ===============================================
 # Development Stage
 # ===============================================
-FROM base as development
+FROM base AS development
 
 # Copy dependency files
 COPY pyproject.toml /app/
@@ -80,7 +80,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 # ===============================================
 # Production Dependencies Stage
 # ===============================================
-FROM base as production-deps
+FROM base AS production-deps
 
 # Copy dependency files
 COPY pyproject.toml /app/
@@ -97,7 +97,7 @@ RUN pip install --no-cache-dir ".[production]"
 # ===============================================
 # Production Stage
 # ===============================================
-FROM python:3.11-slim-bookworm as production
+FROM python:3.11-slim-bookworm AS production
 
 # Set environment variables for production
 ENV PYTHONUNBUFFERED=1 \
@@ -215,7 +215,7 @@ CMD ["gunicorn", "--config", "gunicorn.conf.py", "app.main:app"]
 # ===============================================
 # Testing Stage
 # ===============================================
-FROM development as testing
+FROM development AS testing
 
 # Copy test files
 COPY --chown=appuser:appuser tests/ /app/tests/
@@ -229,7 +229,7 @@ CMD ["pytest", "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missin
 # ===============================================
 # Migration Stage
 # ===============================================
-FROM production-deps as migration
+FROM production-deps AS migration
 
 # Create application user
 RUN groupadd --gid 1000 appuser \
