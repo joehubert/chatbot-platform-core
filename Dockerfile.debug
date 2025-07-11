@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy files
+COPY pyproject.toml ./
+COPY app/ ./app/
+COPY README.md /app/
+
+
+# Debug step by step
+RUN pip install --upgrade pip setuptools wheel
+
+# Try base install first
+RUN echo "=== Testing base install ==="
+RUN pip install . --verbose
+
+# Try dev dependencies
+RUN echo "=== Testing dev dependencies ==="
+RUN pip install ".[dev]" --verbose
+
+CMD ["python", "-c", "print('Success!')"]

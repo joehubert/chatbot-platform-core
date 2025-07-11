@@ -37,9 +37,13 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create application user
-RUN groupadd --gid 1000 appuser \
-    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+# Create application user (ONLY ONCE - in base stage)
+RUN if ! getent group appuser > /dev/null 2>&1; then \
+    groupadd --gid 1000 appuser; \
+    fi \
+    && if ! getent passwd appuser > /dev/null 2>&1; then \
+    useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser; \
+    fi
 
 # Create application directories
 RUN mkdir -p /app /app/logs /app/uploads /app/temp \
@@ -90,6 +94,7 @@ WORKDIR /app
 COPY app/ /app/app/
 COPY alembic/ /app/alembic/
 COPY alembic.ini /app/
+COPY README.md /app/
 
 # Install only production dependencies
 RUN pip install --no-cache-dir ".[production]"
@@ -130,9 +135,13 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create application user
-RUN groupadd --gid 1000 appuser \
-    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+# Create application user (safe version for production)
+RUN if ! getent group appuser > /dev/null 2>&1; then \
+    groupadd --gid 1000 appuser; \
+    fi \
+    && if ! getent passwd appuser > /dev/null 2>&1; then \
+    useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser; \
+    fi
 
 # Create application directories
 RUN mkdir -p /app /app/logs /app/uploads /app/temp /app/static \
@@ -231,10 +240,8 @@ CMD ["pytest", "-v", "--cov=app", "--cov-report=html", "--cov-report=term-missin
 # ===============================================
 FROM production-deps AS migration
 
-# Create application user
-RUN groupadd --gid 1000 appuser \
-    && useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser \
-    && chown -R appuser:appuser /app
+# User already exists from base stage, just set ownership
+RUN chown -R appuser:appuser /app
 
 # Switch to application user
 USER appuser

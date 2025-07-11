@@ -41,6 +41,7 @@ classifiers = [
     "Framework :: AsyncIO",
 ]
 requires-python = ">=3.11"
+
 dependencies = [
     # Core Framework
     "fastapi>=0.109.0,<1.0.0",
@@ -67,8 +68,8 @@ dependencies = [
     "cryptography>=42.0.0,<43.0.0",
     
     # Data Validation & Serialization
-    "pydantic>=2.5.3,<3.0.0",
-    "pydantic-settings>=2.1.0,<3.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
     "email-validator>=2.1.0,<3.0.0",
     
     # API-based LLM Providers
@@ -86,7 +87,7 @@ dependencies = [
     # Document Processing (core feature)
     "pypdf2>=3.0.1,<4.0.0",
     "python-docx>=1.1.0,<2.0.0",
-    "python-markdown>=3.5.2,<4.0.0",
+    "Markdown>=3.4.0,<4.0.0",  # Fixed: was "python-markdown>=3.5.2,<4.0.0"
     "beautifulsoup4>=4.12.3,<5.0.0",
     "unstructured>=0.12.4,<1.0.0",
     
@@ -108,6 +109,7 @@ dependencies = [
     "tenacity>=8.2.3,<9.0.0",
     "shortuuid>=1.0.11,<2.0.0",
 ]
+
 dynamic = ["version"]
 
 [project.optional-dependencies]
@@ -187,7 +189,7 @@ packages = ["app"]
 [tool.black]
 line-length = 88
 target-version = ['py311']
-include = '\.pyi?
+include = '\.pyi?$'
 extend-exclude = '''
 /(
   # directories
@@ -320,7 +322,7 @@ exclude_lines = [
     "raise NotImplementedError",
     "if 0:",
     "if __name__ == .__main__.:",
-    "class .*\bProtocol\):",
+    "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
 ]
 show_missing = true
@@ -331,73 +333,3 @@ directory = "htmlcov"
 
 [tool.coverage.xml]
 output = "coverage.xml"
-
-# ===============================================
-# Flake8 Configuration (in setup.cfg format for compatibility)
-# ===============================================
-[tool.flake8]
-max-line-length = 88
-extend-ignore = [
-    "E203",  # whitespace before ':'
-    "E501",  # line too long (handled by black)
-    "W503",  # line break before binary operator
-]
-exclude = [
-    ".git",
-    "__pycache__",
-    "docs/source/conf.py",
-    "old",
-    "build",
-    "dist",
-    "alembic/versions",
-    ".venv",
-    "venv",
-]
-per-file-ignores = [
-    "__init__.py:F401",  # imported but unused
-]
-
-# ===============================================
-# Bandit Security Linting
-# ===============================================
-[tool.bandit]
-exclude_dirs = ["tests", "alembic"]
-skips = ["B101", "B601"]  # Skip assert_used and shell injection for tests
-
-# ===============================================
-# Pre-commit Configuration
-# ===============================================
-[tool.pre-commit]
-repos = [
-    {
-        repo = "https://github.com/pre-commit/pre-commit-hooks",
-        rev = "v4.5.0",
-        hooks = [
-            "trailing-whitespace",
-            "end-of-file-fixer",
-            "check-yaml",
-            "check-added-large-files",
-            "check-merge-conflict",
-        ]
-    },
-    {
-        repo = "https://github.com/psf/black",
-        rev = "23.12.1",
-        hooks = ["black"]
-    },
-    {
-        repo = "https://github.com/pycqa/isort",
-        rev = "5.13.2",
-        hooks = ["isort"]
-    },
-    {
-        repo = "https://github.com/pycqa/flake8",
-        rev = "7.0.0",
-        hooks = ["flake8"]
-    },
-    {
-        repo = "https://github.com/pre-commit/mirrors-mypy",
-        rev = "v1.8.0",
-        hooks = ["mypy"]
-    },
-]
