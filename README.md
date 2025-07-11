@@ -1,39 +1,124 @@
-# chatbot-integration-demo
-Simple website to use as a harness for the AI chatbot (separate project).
+# Chatbot Platform Core
 
+Enterprise-grade, self-hosted AI chatbot platform designed for small and medium enterprises (SMEs). Built with Python/FastAPI, this platform provides intelligent conversation management, RAG capabilities, multi-LLM support, and comprehensive analytics.
 
+## 🚀 Overview
 
-# Local Development Setup
+The Chatbot Platform Core is a single-tenant, self-hosted solution that organizations deploy and customize for their specific needs. It features an intelligent LangGraph-based processing pipeline, configurable LLM backends, organization-specific knowledge base integration, and professional-grade monitoring and analytics.
 
-## Prerequisites
+### Key Features
 
-- **Node.js** 16+ and npm 8+
-- **Docker** and Docker Compose (for full stack)
-- **Git** for version control
+- **🧠 Intelligent Processing Pipeline** - LangGraph-based request processing with rate limiting, relevance checking, semantic caching, and model routing
+- **📚 RAG Knowledge Base** - Document upload, processing, chunking, and vector storage with expiration management
+- **🤖 Multi-LLM Support** - Pluggable architecture supporting OpenAI, Anthropic, HuggingFace, and local models
+- **🔐 Authentication System** - SMS/Email OTP authentication with secure session management
+- **📊 Analytics & Monitoring** - Comprehensive conversation tracking, performance metrics, and cost analysis
+- **🔧 MCP Integration** - Model Context Protocol support for external system integration
+- **⚡ Semantic Caching** - Vector-based response caching for improved performance
+- **🛡️ Enterprise Security** - End-to-end encryption, secure token management, and audit logging
 
-## Quick Start (Test Harness Only)
+## 🏗️ Architecture Overview
 
-Get the chatbot widget test harness running in under 5 minutes:
-
-```bash
-# Clone the repository
-git clone https://github.com/yourorg/chatbot-integration-demo.git
-cd chatbot-integration-demo
-
-# Install dependencies
-npm install
-
-# Start the test server
-npm run dev
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Client Layer                           │
+├─────────────────────────────────────────────────────────────────┤
+│  Widget (JS)  │  Admin UI (React)  │  Mobile App  │  API Clients │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      API Gateway (FastAPI)                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Authentication │  Rate Limiting  │  Request Validation  │  CORS │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    LangGraph Processing Pipeline                │
+├─────────────────────────────────────────────────────────────────┤
+│ Rate Limit → Relevance → Cache Check → Model Route → Auth → RAG │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                    ┌───────────┼───────────┐
+                    ▼           ▼           ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│   LLM Providers │ │   Vector Store  │ │   MCP Servers   │
+│                 │ │                 │ │                 │
+│ • OpenAI        │ │ • Pinecone      │ │ • CRM Systems   │
+│ • Anthropic     │ │ • Chroma        │ │ • Databases     │
+│ • HuggingFace   │ │ • Weaviate      │ │ • APIs          │
+│ • Local Models  │ │ • pgvector      │ │ • Tools         │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Data & Cache Layer                         │
+├─────────────────────────────────────────────────────────────────┤
+│  PostgreSQL  │  Redis Cache  │  File Storage  │  Audit Logs    │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the widget integration demos.
+## 📦 Core Components
 
-## Full Development Setup
+### 1. API Layer (`app/api/`)
+- **Chat Endpoints** - Message processing, conversation management
+- **Knowledge Base** - Document upload, management, search
+- **Authentication** - OTP generation, verification, session management
+- **Configuration** - System settings, model configuration
+- **Analytics** - Metrics, reporting, performance data
 
-### 1. Environment Configuration
+### 2. Processing Pipeline (`app/core/pipeline/`)
+- **Rate Limiter** - Token bucket algorithm with Redis backend
+- **Relevance Checker** - LLM-based query classification
+- **Semantic Cache** - Vector similarity-based response caching
+- **Model Router** - Intelligent routing based on query complexity
+- **Auth Handler** - Conditional authentication flow
+- **RAG Engine** - Knowledge base query and context injection
 
-Copy the environment template and configure your settings:
+### 3. LLM Integration (`app/services/llm/`)
+- **Provider Factory** - Pluggable LLM provider architecture
+- **Model Manager** - Dynamic model selection and configuration
+- **Cost Tracker** - Token usage and cost monitoring
+- **Fallback Handler** - Automatic failover between providers
+
+### 4. Knowledge Management (`app/services/knowledge/`)
+- **Document Processor** - File parsing, chunking, metadata extraction
+- **Vector Manager** - Embedding generation and storage
+- **Expiration Handler** - Automated content lifecycle management
+- **Search Engine** - Semantic search and retrieval
+
+### 5. Data Layer (`app/models/`)
+- **Conversation Models** - Chat sessions, messages, context
+- **User Models** - Authentication, sessions, preferences  
+- **Document Models** - Knowledge base content, metadata
+- **Analytics Models** - Metrics, usage tracking, performance
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python 3.11+**
+- **Docker & Docker Compose**
+- **PostgreSQL 15+**
+- **Redis 7+**
+- **LLM API Keys** (OpenAI, Anthropic, etc.)
+
+### 1. Clone and Setup
+
+```bash
+git clone https://github.com/your-org/chatbot-platform-core.git
+cd chatbot-platform-core
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Environment Configuration
 
 ```bash
 cp .env.example .env
@@ -42,446 +127,673 @@ cp .env.example .env
 Edit `.env` with your configuration:
 
 ```bash
-# Basic settings
-NODE_ENV=development
-PORT=3000
+# Database Configuration
+DATABASE_URL=postgresql://chatbot:password@localhost:5432/chatbot_db
+REDIS_URL=redis://localhost:6379/0
 
-# Widget defaults
-DEFAULT_WIDGET_THEME=corporate-blue
-DEFAULT_WIDGET_POSITION=bottom-right
-DEFAULT_GREETING="Hello! How can I help you today?"
+# LLM Provider Configuration
+OPENAI_API_KEY=sk-your-openai-key
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
+HUGGINGFACE_API_KEY=hf_your-huggingface-key
 
-# Demo site configurations
-CORPORATE_DEMO_NAME="Acme Corporation"
-ECOMMERCE_DEMO_NAME="TechShop Online"
+# Vector Database
+VECTOR_DB_TYPE=pinecone
+PINECONE_API_KEY=your-pinecone-key
+PINECONE_ENVIRONMENT=your-pinecone-env
+
+# Pipeline Configuration
+RATE_LIMIT_PER_USER_PER_MINUTE=60
+RATE_LIMIT_GLOBAL_PER_MINUTE=1000
+CACHE_SIMILARITY_THRESHOLD=0.85
+CACHE_TTL_HOURS=24
+
+# Model Configuration
+RELEVANCE_MODEL=gpt-3.5-turbo
+SIMPLE_QUERY_MODEL=gpt-3.5-turbo
+COMPLEX_QUERY_MODEL=gpt-4
+CLARIFICATION_MODEL=gpt-3.5-turbo
+
+# Authentication
+AUTH_SESSION_TIMEOUT_MINUTES=30
+OTP_EXPIRY_MINUTES=5
+SMS_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=your-twilio-sid
+TWILIO_AUTH_TOKEN=your-twilio-token
+EMAIL_PROVIDER=sendgrid
+SENDGRID_API_KEY=your-sendgrid-key
+
+# Security
+SECRET_KEY=your-super-secret-key-here
+ENCRYPTION_KEY=your-encryption-key-here
+
+# File Upload
+MAX_FILE_SIZE_MB=50
+ALLOWED_FILE_TYPES=pdf,txt,docx,md
+UPLOAD_STORAGE_PATH=./uploads
+
+# Monitoring
+LOG_LEVEL=INFO
+ENABLE_METRICS=true
+LANGSMITH_API_KEY=your-langsmith-key
+LANGSMITH_PROJECT=chatbot-platform
 ```
 
-### 2. Start Development Services
+### 3. Database Setup
 
-#### Option A: Test Harness Only (Lightweight)
 ```bash
-npm run dev
+# Start PostgreSQL and Redis (if using Docker)
+docker-compose up -d postgres redis
+
+# Run database migrations
+alembic upgrade head
+
+# Create initial admin user (optional)
+python scripts/create_admin.py
 ```
 
-#### Option B: Full Stack with Docker (Complete Platform)
+### 4. Start the Platform
+
+#### Development Mode
 ```bash
-# Start all services (API, Redis, PostgreSQL, Vector DB)
+# Start the FastAPI server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### Production Mode with Docker
+```bash
+# Build and start all services
 docker-compose up -d
 
-# Install widget dependencies
-npm install
-
-# Start the development server
-npm run dev:full
+# Check service health
+docker-compose ps
+curl http://localhost:8000/health
 ```
 
-### 3. Available Development URLs
-
-| Service | URL | Description |
-|---------|-----|-------------|
-| Test Harness | [http://localhost:3000](http://localhost:3000) | Widget integration demos |
-| CDN Integration | [http://localhost:3000/](http://localhost:3000/) | Script tag integration test |
-| NPM Integration | [http://localhost:3000/npm-test](http://localhost:3000/npm-test) | Package integration test |
-| Iframe Integration | [http://localhost:3000/iframe-test](http://localhost:3000/iframe-test) | Iframe embedding test |
-| Mobile Test | [http://localhost:3000/mobile-test](http://localhost:3000/mobile-test) | Responsive design test |
-| Corporate Demo | [http://localhost:3000/corporate-sim](http://localhost:3000/corporate-sim) | Corporate website simulation |
-| E-commerce Demo | [http://localhost:3000/ecommerce-sim](http://localhost:3000/ecommerce-sim) | E-commerce integration |
-
-## Development Commands
+### 5. Verify Installation
 
 ```bash
-# Development
-npm run dev              # Start test harness server
-npm run dev:watch        # Start with auto-reload
-npm run dev:full         # Start with full backend stack
-
-# Testing
-npm test                 # Run unit tests
-npm run test:watch       # Run tests in watch mode
-npm run test:e2e         # Run end-to-end tests
-
-# Code Quality
-npm run lint             # Check code style
-npm run lint:fix         # Fix linting issues
-npm run format           # Format code with Prettier
-
-# Build
-npm run build            # Build for production
-npm run build:examples   # Build integration examples
-```
-
-## Project Structure
-
-```
-chatbot-integration-demo/
-├── test-server/         # Express.js test harness
-│   ├── app.js          # Main server application
-│   ├── views/          # EJS templates for test pages
-│   └── public/         # Static assets (CSS, JS, images)
-├── examples/           # Real-world integration examples
-├── mock-data/          # Sample data for testing
-├── documentation/      # Integration guides
-└── scripts/           # Utility scripts
-```
-
-## Testing Your Integration
-
-### 1. Test Widget Functionality
-Visit the test pages to verify widget behavior:
-- **Basic functionality**: Message sending, receiving, UI interactions
-- **Theme switching**: Corporate Blue, Warm Orange, Modern Purple
-- **Responsive design**: Mobile, tablet, desktop layouts
-- **Integration methods**: CDN, NPM, iframe embedding
-
-### 2. Test API Endpoints
-```bash
-# Test chat endpoint
-curl -X POST http://localhost:3000/api/chat/message \
+# Test the chat endpoint
+curl -X POST http://localhost:8000/api/v1/chat/message \
   -H "Content-Type: application/json" \
-  -d '{"message": "Hello", "sessionId": "test-session"}'
+  -d '{"message": "Hello, can you help me?"}'
 
-# Test health check
-curl http://localhost:3000/health
+# Check system health
+curl http://localhost:8000/health
+
+# View API documentation
+open http://localhost:8000/docs
 ```
 
-### 3. Integration Examples
-Check the `examples/` directory for real-world integration code:
-- `vanilla-html/` - Pure HTML/JS integration
-- `react-app/` - React component integration  
-- `wordpress-plugin/` - WordPress plugin example
+## ⚙️ Configuration Guide
 
-## Troubleshooting
+### LLM Provider Setup
 
-### Common Issues
-
-**Port already in use:**
+#### OpenAI Configuration
 ```bash
-# Kill process on port 3000
-lsof -ti:3000 | xargs kill -9
-
-# Or use different port
-PORT=3001 npm run dev
+OPENAI_API_KEY=sk-your-key
+OPENAI_ORG_ID=org-your-org-id  # Optional
+OPENAI_BASE_URL=https://api.openai.com/v1  # Optional
 ```
 
-**Missing dependencies:**
+#### Anthropic Configuration
 ```bash
-# Clear cache and reinstall
-rm -rf node_modules package-lock.json
-npm install
+ANTHROPIC_API_KEY=sk-ant-your-key
+ANTHROPIC_BASE_URL=https://api.anthropic.com  # Optional
 ```
 
-**Docker issues:**
+#### Local Model Configuration (Ollama)
 ```bash
-# Reset Docker environment
-docker-compose down -v
-docker-compose up -d --build
+LOCAL_MODEL_ENABLED=true
+OLLAMA_BASE_URL=http://localhost:11434
+LOCAL_MODEL_NAME=llama2:7b
 ```
 
-### Getting Help
+### Vector Database Configuration
 
-- **Widget not loading**: Check browser console for errors
-- **API errors**: Check server logs with `npm run dev` 
-- **Style conflicts**: Test in different themes and browsers
-- **Integration issues**: Reference examples in `examples/` directory
+#### Pinecone Setup
+```bash
+VECTOR_DB_TYPE=pinecone
+PINECONE_API_KEY=your-api-key
+PINECONE_ENVIRONMENT=your-environment
+PINECONE_INDEX_NAME=chatbot-knowledge
+```
 
-## Next Steps
+#### Chroma Setup (Local)
+```bash
+VECTOR_DB_TYPE=chroma
+CHROMA_HOST=localhost
+CHROMA_PORT=8000
+CHROMA_COLLECTION=chatbot-docs
+```
 
-1. **Explore Integration Methods**: Try CDN, NPM, and iframe approaches
-2. **Customize Themes**: Modify CSS themes in `test-server/public/css/themes/`
-3. **Test Responsive Design**: Use mobile test page and browser dev tools
-4. **Build Your Integration**: Use examples as starting templates
+#### pgvector Setup (PostgreSQL Extension)
+```bash
+VECTOR_DB_TYPE=pgvector
+# Uses same DATABASE_URL as main database
+PGVECTOR_DIMENSION=1536  # Match your embedding model
+```
 
-For more detailed integration instructions, see the [Integration Guide](documentation/integration-guide.md).
+### Pipeline Configuration
 
-# Widget Architecture: Web Components + Iframe Fallback
+#### Rate Limiting
+```bash
+# Per-user limits
+RATE_LIMIT_PER_USER_PER_MINUTE=60
+RATE_LIMIT_BURST_CAPACITY=10
 
-## Overview
+# Global limits
+RATE_LIMIT_GLOBAL_PER_MINUTE=1000
+RATE_LIMIT_WINDOW_SIZE=60
+```
 
-Our AI chatbot widget uses a **hybrid rendering architecture** that combines modern Web Components with iframe fallback to deliver optimal performance across all browser environments while maintaining complete style isolation from host websites.
+#### Semantic Cache
+```bash
+CACHE_SIMILARITY_THRESHOLD=0.85  # 0.0-1.0
+CACHE_TTL_HOURS=24
+CACHE_MAX_ENTRIES=10000
+CACHE_CLEANUP_INTERVAL_HOURS=6
+```
 
-## The Challenge
+#### Model Routing
+```bash
+# Complexity thresholds (0.0-1.0)
+SIMPLE_QUERY_THRESHOLD=0.3
+COMPLEX_QUERY_THRESHOLD=0.7
 
-When embedding third-party widgets on customer websites, developers face a fundamental trade-off:
+# Model assignments
+SIMPLE_QUERY_MODEL=gpt-3.5-turbo
+COMPLEX_QUERY_MODEL=gpt-4
+RELEVANCE_MODEL=gpt-3.5-turbo
+CLARIFICATION_MODEL=gpt-3.5-turbo
+```
 
-- **Direct DOM manipulation** offers great performance but suffers from CSS conflicts and style bleeding
-- **Iframe embedding** provides complete isolation but introduces communication overhead and performance costs
-- **Different websites** have varying levels of modern browser support and security policies
+### Authentication Configuration
 
-## Our Solution: Progressive Enhancement
+#### SMS Provider (Twilio)
+```bash
+SMS_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=ACxxxxx
+TWILIO_AUTH_TOKEN=your-token
+TWILIO_PHONE_NUMBER=+1234567890
+```
 
-### Primary: Web Components with Shadow DOM
+#### Email Provider (SendGrid)
+```bash
+EMAIL_PROVIDER=sendgrid
+SENDGRID_API_KEY=SG.xxxxx
+FROM_EMAIL=noreply@yourdomain.com
+FROM_NAME=Your Chatbot
+```
 
-For modern browsers (95%+ of traffic), we use **Custom Elements with Shadow DOM**:
+## 🐳 Docker Deployment
 
-```javascript
-class AIChatbotWidget extends HTMLElement {
-  constructor() {
-    super();
-    const shadow = this.attachShadow({ mode: 'open' });
-    // Widget renders in isolated Shadow DOM
+### Development Environment
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://chatbot:password@postgres:5432/chatbot_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=chatbot_db
+      - POSTGRES_USER=chatbot
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
+```
+
+### Production Environment
+```bash
+# Production deployment
+docker-compose -f docker-compose.prod.yml up -d
+
+# Health check
+docker-compose exec app python scripts/health_check.py
+
+# View logs
+docker-compose logs -f app
+
+# Scale services
+docker-compose up -d --scale app=3
+```
+
+## 📊 API Reference
+
+### Chat API
+
+#### Send Message
+```http
+POST /api/v1/chat/message
+Content-Type: application/json
+
+{
+  "message": "string",
+  "session_id": "string (optional)",
+  "user_id": "string (optional)",
+  "context": {
+    "page_url": "string",
+    "user_agent": "string"
   }
 }
 ```
 
-**Benefits:**
-- ✅ **Complete CSS isolation** - Host page styles cannot interfere with widget
-- ✅ **Native browser performance** - No iframe overhead or communication barriers  
-- ✅ **Direct API access** - Seamless communication with our backend services
-- ✅ **Better mobile UX** - No nested scrolling or viewport issues
-- ✅ **SEO friendly** - Content remains part of the main document
-
-### Fallback: Iframe Embedding
-
-For older browsers or restrictive CSP environments:
-
-```javascript
-renderIframe(shadow) {
-  const iframe = document.createElement('iframe');
-  iframe.src = `${this.config.widgetUrl}?orgId=${this.config.orgId}`;
-  shadow.appendChild(iframe);
+**Response:**
+```json
+{
+  "response": "string",
+  "session_id": "string",
+  "requires_auth": false,
+  "auth_methods": ["sms", "email"],
+  "conversation_id": "string",
+  "cached": false,
+  "model_used": "gpt-3.5-turbo",
+  "processing_time_ms": 1250,
+  "sources": ["doc1.pdf", "doc2.txt"]
 }
 ```
 
-**Ensures:**
-- ✅ **Universal compatibility** - Works in any browser that supports iframes (99.9%+)
-- ✅ **Security compliance** - Meets strictest CSP and security requirements
-- ✅ **Graceful degradation** - Automatic fallback with identical functionality
+#### Request Authentication
+```http
+POST /api/v1/chat/auth/request
+Content-Type: application/json
 
-## Implementation Strategy
-
-### 1. Feature Detection
-```javascript
-supportsWebComponents() {
-  return 'customElements' in window && 
-         'attachShadow' in Element.prototype &&
-         'getRootNode' in Element.prototype;
+{
+  "session_id": "string",
+  "contact_method": "sms",
+  "contact_value": "+1234567890"
 }
 ```
 
-### 2. Unified Configuration
-Both rendering modes use identical configuration and connect to the same backend:
+#### Verify Authentication
+```http
+POST /api/v1/chat/auth/verify
+Content-Type: application/json
 
-```javascript
-window.ChatbotConfig = {
-  orgId: 'customer-123',
-  apiEndpoint: '/api/chat',
-  theme: 'corporate-blue',
-  // ... same config for both modes
-};
+{
+  "session_id": "string",
+  "token": "123456"
+}
 ```
 
-### 3. Seamless Backend Integration
-Whether rendered as Web Component or iframe, the widget connects to our unified:
-- **RAG pipeline** for organization-specific knowledge
-- **MCP servers** for customer integrations  
-- **LLM routing** for intelligent responses
+### Knowledge Base API
 
-## Why This Architecture?
+#### Upload Document
+```http
+POST /api/v1/knowledge/documents
+Content-Type: multipart/form-data
 
-### For Customers
-- **Easy integration** - Single script tag works everywhere
-- **No conflicts** - Widget appearance is guaranteed consistent
-- **Future-proof** - Automatically gets performance improvements as browsers update
-
-### For Development  
-- **Single codebase** - One widget implementation, multiple rendering strategies
-- **Progressive enhancement** - Better experience for modern browsers, fallback for older ones
-- **Simplified testing** - Same functionality across all deployment modes
-
-### For Performance
-- **Optimal by default** - Modern browsers get Web Component performance
-- **No compromise fallback** - Older browsers still get full functionality
-- **Minimal overhead** - Feature detection happens once during initialization
-
-## Browser Support Matrix
-
-| Browser | Web Components | Iframe Fallback |
-|---------|----------------|-----------------|
-| Chrome 67+ | ✅ Primary | ⚪ Not needed |
-| Firefox 63+ | ✅ Primary | ⚪ Not needed |  
-| Safari 12+ | ✅ Primary | ⚪ Not needed |
-| Edge 79+ | ✅ Primary | ⚪ Not needed |
-| IE 11 | ❌ Not supported | ✅ Fallback |
-| Legacy browsers | ❌ Not supported | ✅ Fallback |
-
-## Integration Examples
-
-### CDN Integration (Recommended)
-```html
-<script>
-  window.ChatbotConfig = { orgId: 'your-org' };
-</script>
-<script src="https://cdn.yourcompany.com/ai-chatbot.js"></script>
+file: (binary)
+expiration_date: 2024-12-31T23:59:59Z
+category: general
+metadata: {"source": "manual", "version": "1.0"}
 ```
 
-### NPM Integration
-```javascript
-import { AIChatbot } from '@yourcompany/ai-chatbot';
-new AIChatbot({ orgId: 'your-org' }).init();
+#### List Documents
+```http
+GET /api/v1/knowledge/documents?category=general&limit=50&offset=0
 ```
 
-### Direct Iframe (High Security Environments)
-```html
-<iframe src="https://widget.yourcompany.com/embed?orgId=your-org"></iframe>
+#### Delete Document
+```http
+DELETE /api/v1/knowledge/documents/{document_id}
 ```
 
-All three methods provide identical functionality - the widget automatically selects the optimal rendering strategy based on browser capabilities and environment constraints.
+### Configuration API
 
-## Technical Benefits
-
-This architecture allows us to:
-- Deliver cutting-edge performance for modern users
-- Maintain backward compatibility for legacy environments  
-- Use a single, maintainable codebase
-- Provide consistent functionality across all deployment scenarios
-- Future-proof the widget as web standards evolve
-
-The result is a robust, performant widget that works reliably across the diverse landscape of customer websites while maintaining our unified backend architecture.
-
-
-# Project Structure and Files
-
-This section explains the structure of the project and the purpose for the dirs and files.
-
-## **Root Level Files**
+#### Get Configuration
+```http
+GET /api/v1/config
+Authorization: Bearer {admin_token}
 ```
-chatbot-integration-demo/
-├── README.md
-├── package.json
+
+#### Update Configuration
+```http
+PUT /api/v1/config
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "rate_limits": {
+    "per_user_per_minute": 60,
+    "global_per_minute": 1000
+  },
+  "models": {
+    "simple_query": "gpt-3.5-turbo",
+    "complex_query": "gpt-4"
+  }
+}
+```
+
+### Analytics API
+
+#### Conversation Metrics
+```http
+GET /api/v1/analytics/conversations?start_date=2024-01-01&end_date=2024-01-31
+```
+
+#### Performance Metrics
+```http
+GET /api/v1/analytics/performance?metric=response_time&granularity=hour
+```
+
+## 🔧 Development Guide
+
+### Project Structure
+```
+chatbot-platform-core/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI application
+│   ├── api/                    # API endpoints
+│   │   ├── __init__.py
+│   │   ├── v1/
+│   │   │   ├── chat.py        # Chat endpoints
+│   │   │   ├── knowledge.py   # Knowledge base endpoints
+│   │   │   ├── auth.py        # Authentication endpoints
+│   │   │   ├── config.py      # Configuration endpoints
+│   │   │   └── analytics.py   # Analytics endpoints
+│   ├── core/                   # Business logic
+│   │   ├── __init__.py
+│   │   ├── pipeline/          # LangGraph processing pipeline
+│   │   │   ├── __init__.py
+│   │   │   ├── rate_limiter.py
+│   │   │   ├── relevance_checker.py
+│   │   │   ├── semantic_cache.py
+│   │   │   ├── model_router.py
+│   │   │   ├── auth_handler.py
+│   │   │   └── rag_engine.py
+│   │   ├── security/          # Security utilities
+│   │   └── config.py          # Configuration management
+│   ├── models/                # Database models
+│   │   ├── __init__.py
+│   │   ├── conversation.py
+│   │   ├── user.py
+│   │   ├── document.py
+│   │   └── analytics.py
+│   ├── schemas/               # Pydantic schemas
+│   │   ├── __init__.py
+│   │   ├── chat.py
+│   │   ├── auth.py
+│   │   ├── knowledge.py
+│   │   └── config.py
+│   ├── services/              # External service integrations
+│   │   ├── __init__.py
+│   │   ├── llm/              # LLM provider services
+│   │   │   ├── __init__.py
+│   │   │   ├── factory.py
+│   │   │   ├── openai.py
+│   │   │   ├── anthropic.py
+│   │   │   └── local.py
+│   │   ├── vector/           # Vector database services
+│   │   │   ├── __init__.py
+│   │   │   ├── factory.py
+│   │   │   ├── pinecone.py
+│   │   │   ├── chroma.py
+│   │   │   └── pgvector.py
+│   │   ├── knowledge/        # Knowledge management
+│   │   ├── auth/            # Authentication services
+│   │   └── mcp/             # MCP server integration
+│   └── utils/                # Utility functions
+│       ├── __init__.py
+│       ├── logging.py
+│       ├── metrics.py
+│       └── helpers.py
+├── tests/                     # Test suite
+│   ├── __init__.py
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── alembic/                   # Database migrations
+├── scripts/                   # Utility scripts
+├── docs/                      # Documentation
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── Dockerfile
+├── requirements.txt
+├── requirements-dev.txt
 ├── .env.example
-├── .gitignore
+└── README.md
 ```
 
-## **Test Server Files**
-```
-test-server/
-├── app.js                          # Main Express application
-├── views/                          # EJS templates
-│   ├── index.ejs                   # CDN integration test
-│   ├── npm-integration.ejs         # NPM package test
-│   ├── iframe-integration.ejs      # Iframe embedding test
-│   ├── mobile-test.ejs            # Mobile responsive test
-│   ├── corporate-sim.ejs          # Corporate website simulation
-│   ├── ecommerce-sim.ejs          # E-commerce integration
-│   └── error.ejs                  # Error page template
-├── public/
-│   ├── css/
-│   │   ├── themes/
-│   │   │   ├── corporate-blue.css  # Professional blue theme
-│   │   │   ├── warm-orange.css     # Friendly orange theme
-│   │   │   └── modern-purple.css   # Contemporary purple theme
-│   │   └── demo-sites.css          # Styling for demo pages
-│   ├── js/
-│   │   ├── chatbot-widget.js       # Main widget script
-│   │   └── integration-examples.js # Integration helpers
-│   └── images/                     # Demo logos and assets
-│       └── logos/
-│           ├── acme-corp.png
-│           └── techshop.png
+### Running Tests
+```bash
+# Install test dependencies
+pip install -r requirements-dev.txt
+
+# Run unit tests
+pytest tests/unit/
+
+# Run integration tests
+pytest tests/integration/
+
+# Run all tests with coverage
+pytest --cov=app tests/
+
+# Run specific test file
+pytest tests/unit/test_pipeline.py -v
 ```
 
-## **Examples Files**
-```
-examples/
-├── vanilla-html/
-│   ├── index.html                  # Pure HTML/JS integration
-│   ├── style.css
-│   └── script.js
-├── react-app/
-│   ├── package.json
-│   ├── src/
-│   │   ├── App.js                  # React component integration
-│   │   ├── ChatbotWidget.js
-│   │   └── index.js
-│   └── public/
-│       └── index.html
-├── wordpress-plugin/
-│   ├── chatbot-widget.php          # Main plugin file
-│   ├── admin/
-│   │   └── admin-panel.php         # WordPress admin configuration
-│   └── assets/
-│       ├── admin.css
-│       └── admin.js
-├── shopify-theme/
-│   ├── layout/
-│   │   └── theme.liquid            # Shopify theme integration
-│   ├── snippets/
-│   │   └── chatbot-widget.liquid
-│   └── assets/
-│       └── chatbot-config.js
-└── static-site/
-    ├── _config.yml                 # Jekyll configuration
-    ├── _includes/
-    │   └── chatbot-widget.html     # Jekyll/Hugo integration
-    └── assets/
-        └── chatbot-init.js
+### Database Migrations
+```bash
+# Create new migration
+alembic revision --autogenerate -m "Add new table"
+
+# Apply migrations
+alembic upgrade head
+
+# Rollback migration
+alembic downgrade -1
+
+# View migration history
+alembic history
 ```
 
-## **Mock Data Files**
-```
-mock-data/
-├── organizations/
-│   ├── acme-corp.json              # Sample organization config
-│   ├── techshop.json
-│   └── demo-org.json
-├── responses/
-│   ├── general-responses.json      # General conversational responses
-│   ├── product-responses.json      # Product-specific responses
-│   ├── error-responses.json        # Error scenario responses
-│   └── contextual-responses.json   # Page-specific responses
-└── sample-content/
-    ├── company-info.json           # Sample company information
-    ├── product-catalog.json        # Sample product data
-    └── faq-content.json            # Sample FAQ content
+### Code Quality
+```bash
+# Format code
+black app/ tests/
+
+# Sort imports
+isort app/ tests/
+
+# Lint code
+flake8 app/ tests/
+
+# Type checking
+mypy app/
+
+# Security scan
+bandit -r app/
 ```
 
-## **Documentation Files**
-```
-documentation/
-├── integration-guide.md           # Step-by-step integration instructions
-├── configuration-reference.md     # Configuration options reference
-├── troubleshooting.md             # Common issues and solutions
-├── api-reference.md               # Mock API documentation
-└── best-practices.md              # Integration best practices
+## 📈 Monitoring and Observability
+
+### Health Checks
+The platform provides comprehensive health monitoring:
+
+```bash
+# Basic health check
+curl http://localhost:8000/health
+
+# Detailed health with dependencies
+curl http://localhost:8000/health/detailed
 ```
 
-## **Scripts Files**
-```
-scripts/
-├── setup-mock-data.js             # Initialize mock data
-├── build-examples.js              # Build example projects
-└── validate-config.js             # Validate configuration files
+### Metrics Collection
+- **Request Metrics**: Response times, error rates, throughput
+- **LLM Metrics**: Token usage, costs, model performance
+- **Cache Metrics**: Hit rates, eviction rates, memory usage
+- **Database Metrics**: Query performance, connection pool status
+
+### Logging
+```python
+# Structured logging configuration
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        },
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "format": "%(asctime)s %(name)s %(levelname)s %(message)s"
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+            "level": "INFO"
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "logs/app.log",
+            "maxBytes": 10485760,  # 10MB
+            "backupCount": 5,
+            "formatter": "json",
+            "level": "INFO"
+        }
+    },
+    "root": {
+        "level": "INFO",
+        "handlers": ["console", "file"]
+    }
+}
 ```
 
-## **Additional Development Files**
-```
-tests/
-├── unit/
-│   ├── widget.test.js              # Widget functionality tests
-│   └── api.test.js                 # API endpoint tests
-├── integration/
-│   ├── server.test.js              # Server integration tests
-│   └── examples.test.js            # Example integration tests
-└── e2e/
-    ├── widget-interactions.test.js # End-to-end widget tests
-    └── mobile-responsive.test.js   # Mobile testing
+## 🔒 Security Considerations
+
+### Authentication & Authorization
+- **JWT Tokens**: Secure session management with configurable expiration
+- **OTP Verification**: SMS/Email one-time passwords for sensitive operations
+- **Role-Based Access**: Admin, user, and service account roles
+- **API Key Management**: Secure storage and rotation of LLM provider keys
+
+### Data Protection
+- **Encryption at Rest**: Database and file storage encryption
+- **Encryption in Transit**: TLS 1.3 for all communications
+- **PII Handling**: Automatic detection and masking of personal information
+- **Audit Logging**: Comprehensive audit trail for all operations
+
+### Security Headers
+```python
+# Security middleware configuration
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Content-Security-Policy": "default-src 'self'",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+}
 ```
 
-## **Configuration Files**
-```
-config/
-├── themes.json                     # Theme configurations
-├── demo-sites.json                 # Demo site configurations
-└── widget-defaults.json           # Default widget settings
+## 📚 Knowledge Base Management
+
+### Document Processing Pipeline
+1. **Upload** - Multi-format file upload with validation
+2. **Parsing** - Extract text content from various file formats
+3. **Chunking** - Intelligent text segmentation with overlap
+4. **Embedding** - Generate vector embeddings for semantic search
+5. **Storage** - Store in vector database with metadata
+6. **Indexing** - Build search indexes for fast retrieval
+
+### Supported Formats
+- **PDF** - Adobe PDF documents
+- **DOCX** - Microsoft Word documents
+- **TXT** - Plain text files
+- **MD** - Markdown files
+- **HTML** - Web pages and HTML documents
+
+### Content Lifecycle
+```python
+# Document expiration management
+@scheduled_task(cron="0 2 * * *")  # Daily at 2 AM
+async def cleanup_expired_documents():
+    """Remove expired documents from knowledge base"""
+    expired_docs = await get_expired_documents()
+    for doc in expired_docs:
+        await remove_from_vector_store(doc.vector_ids)
+        await delete_document(doc.id)
+        logger.info(f"Removed expired document: {doc.filename}")
 ```
 
-## **Priority Order for Implementation:**
-1. **Core server files**: `app.js`, basic EJS templates
-2. **Widget JavaScript**: `chatbot-widget.js`
-3. **Basic styling**: Theme CSS files
-4. **Mock data**: Organization and response JSON files
-5. **Integration examples**: Starting with vanilla HTML
-6. **Documentation**: Integration guides and API reference
-7. **Testing files**: Unit and integration tests
+## 🤝 Contributing
 
-This represents approximately **40-50 files** total for a complete test harness implementation.
+### Development Setup
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Install development dependencies (`pip install -r requirements-dev.txt`)
+4. Make your changes
+5. Run tests (`pytest`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### Code Standards
+- **Python**: Follow PEP 8 style guide
+- **Type Hints**: Use type hints for all functions and classes
+- **Documentation**: Docstrings for all public methods
+- **Testing**: Minimum 80% test coverage for new code
+- **Security**: Run security scans before committing
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+### Documentation
+- [API Documentation](https://docs.yourdomain.com/api)
+- [Deployment Guide](https://docs.yourdomain.com/deployment)
+- [Configuration Reference](https://docs.yourdomain.com/configuration)
+
+### Getting Help
+- [GitHub Issues](https://github.com/your-org/chatbot-platform-core/issues) - Bug reports and feature requests
+- [GitHub Discussions](https://github.com/your-org/chatbot-platform-core/discussions) - Questions and community support
+- [Professional Support](https://yourdomain.com/support) - Enterprise support and consulting
+
+### Community
+- [Discord Server](https://discord.gg/your-server) - Real-time community chat
+- [Newsletter](https://yourdomain.com/newsletter) - Updates and announcements
+
+---
+
+**Built with ❤️ for SMEs who need powerful, customizable chatbot solutions.**
