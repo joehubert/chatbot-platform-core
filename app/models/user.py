@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import Column, String, DateTime, Boolean, Integer, Index, Text, or_
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import relationship, Mapped, Session
 from .base import Base
 
@@ -126,8 +126,8 @@ class User(Base):
     )
 
     # Additional data
-    metadata: Mapped[Optional[str]] = Column(
-        Text, nullable=True, comment="Additional user metadata stored as JSON"
+    data: Mapped[Optional[dict]] = Column(
+        JSON, nullable=True, comment="Additional user data stored as JSON"
     )
 
     notes: Mapped[Optional[str]] = Column(

@@ -18,7 +18,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.database import get_db
 from app.services.mcp_client import MCPClient, MCPServer, MCPAuthContext
 
 logger = logging.getLogger(__name__)

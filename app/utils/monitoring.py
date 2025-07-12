@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict, deque
 from contextvars import ContextVar
 from app.utils.logging import get_logger
-from app.core.redis import get_redis_client
+from app.core.redis import get_redis
 
 logger = get_logger(__name__)
 
@@ -414,7 +414,7 @@ class AlertManager:
     async def _store_alert(self, alert: Dict[str, Any]):
         """Store alert in Redis for dashboard access."""
         try:
-            redis_client = await get_redis_client()
+            redis_client = await get_redis()
             alert_key = f"alert:{alert['type']}:{int(time.time())}"
             
             await redis_client.setex(

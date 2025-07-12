@@ -411,7 +411,7 @@ def log_llm_call(logger: logging.Logger, provider: str, model: str):
 
 
 # Initialize logging
-setup_logging()
+
 
 # Export commonly used logger
 logger = get_logger('app')

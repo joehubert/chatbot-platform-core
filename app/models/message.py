@@ -21,7 +21,7 @@ from sqlalchemy import (
     Enum as SQLEnum,
     Float,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import relationship, Mapped
 from .base import Base
 
@@ -148,9 +148,9 @@ class Message(Base):
         comment="Whether the message needs clarification",
     )
 
-    # Additional metadata
-    metadata: Mapped[Optional[str]] = Column(
-        Text, nullable=True, comment="Additional metadata stored as JSON"
+    # Additional data
+    data: Mapped[Optional[dict]] = Column(
+        JSON, nullable=True, comment="Additional data stored as JSON"
     )
 
     # Relationships

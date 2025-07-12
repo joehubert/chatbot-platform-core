@@ -476,3 +476,5 @@ async def get_rate_limit_service() -> RateLimitService:
 async def rate_limit_dependency() -> RateLimitService:
     """FastAPI dependency for rate limiting service."""
     return await get_rate_limit_service()
+
+__all__ = ["RateLimitService", "get_rate_limit_service", "rate_limit_dependency", "RateLimitType", "RateLimitConfig", "RateLimitResult", "RateLimitError"]

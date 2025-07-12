@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
-from app.core.database import get_db
+
 from app.models.user import User
 from app.models.auth_token import AuthToken
 from app.services.sms_service import SMSService

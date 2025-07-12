@@ -12,12 +12,12 @@ from sqlalchemy.orm import Session
 import redis
 from datetime import datetime, timedelta
 
-from app.core.database import get_database_session
+from app.core.database import get_sync_db
 from app.core.config import get_settings
 from app.services.auth_service import AuthService
-from app.services.rate_limit_service import RateLimitService
-from app.schemas.user import User
-from app.utils.logger import get_logger
+from app.services.rate_limiting import RateLimitService
+from app.schemas.auth import UserProfile as User
+from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -36,7 +36,7 @@ def get_db() -> Session:
     Provides a database session that is automatically closed after use.
     This is the primary way to access the database in API endpoints.
     """
-    db = get_database_session()
+    db = get_sync_db()
     try:
         yield db
     finally:

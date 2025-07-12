@@ -19,6 +19,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,  # or True, see note below
+        extra="ignore",  # We will change this when we have time to a better approach: docker-compose.env and app.env
     )
 
     # Core Application Configuration
@@ -39,6 +40,7 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str = Field(..., env="DATABASE_URL")
     DATABASE_POOL_SIZE: int = Field(default=20, env="DATABASE_POOL_SIZE")
+    DATABASE_ECHO: bool = Field(default=False, env="DATABASE_ECHO")  # Add this line
     DATABASE_MAX_OVERFLOW: int = Field(default=30, env="DATABASE_MAX_OVERFLOW")
     DATABASE_POOL_TIMEOUT: int = Field(default=30, env="DATABASE_POOL_TIMEOUT")
     DATABASE_POOL_RECYCLE: int = Field(default=3600, env="DATABASE_POOL_RECYCLE")
@@ -192,8 +194,11 @@ class Settings(BaseSettings):
     HEALTH_CHECK_TIMEOUT: int = Field(default=30, env="HEALTH_CHECK_TIMEOUT")
 
     # MCP Server Configuration
-    MCP_SERVER_TIMEOUT: int = Field(default=30, env="MCP_SERVER_TIMEOUT")
-    MCP_SERVER_MAX_RETRIES: int = Field(default=3, env="MCP_SERVER_MAX_RETRIES")
+    MCP_REQUEST_TIMEOUT: int = Field(default=30, env="MCP_REQUEST_TIMEOUT")
+    MCP_MAX_RETRIES: int = Field(default=3, env="MCP_MAX_RETRIES")
+    MCP_RETRY_DELAY: float = Field(default=1.0, env="MCP_RETRY_DELAY")
+    MCP_HEALTH_CHECK_INTERVAL: int = Field(default=60, env="MCP_HEALTH_CHECK_INTERVAL")
+    MCP_CONFIG_FILE: Optional[str] = Field(default=None, env="MCP_CONFIG_FILE")
 
     @field_validator("ENVIRONMENT")
     @classmethod

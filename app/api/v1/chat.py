@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user, check_rate_limit
-from app.core.database import get_database_session
-from app.core.chat_pipeline import ChatPipeline
+from app.core.database import get_async_db
+from app.core.pipeline import ChatbotPipeline
 from app.schemas.chat import (
     ChatMessageRequest,
     ChatMessageResponse,
@@ -24,7 +24,14 @@ from app.models.conversation import Conversation
 from app.models.message import Message
 from app.services.auth_service import AuthService
 from app.services.conversation_service import ConversationService
-from app.services.cache_service import CacheService
+from app.services.cache import SemanticCacheService
+from app.services.rate_limiting import RateLimitService
+from app.services.relevance_checker import RelevanceChecker
+from app.services.model_router import ModelRouter
+from app.services.knowledge_base import KnowledgeBaseService
+from app.services.mcp_registry import MCPRegistry
+from app.services.mcp_client import MCPClient
+from app.services.response_validator import ResponseValidator
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -54,7 +61,29 @@ async def send_message(
     """
     try:
         # Initialize chat pipeline
-        chat_pipeline = ChatPipeline(db=db)
+        # Initialize services
+        rate_limiting_service = RateLimitService(redis_client=get_redis())
+        relevance_checker = RelevanceChecker()
+        semantic_cache = SemanticCacheService(redis_client=get_redis())
+        model_router = ModelRouter()
+        auth_service = AuthService(db=db)
+        knowledge_base = KnowledgeBaseService(db=db)
+        mcp_client = MCPClient()
+        mcp_registry = MCPRegistry(mcp_client=mcp_client)
+        response_validator = ResponseValidator()
+
+        # Initialize chat pipeline
+        chat_pipeline = ChatbotPipeline(
+            rate_limiting_service=rate_limiting_service,
+            relevance_checker=relevance_checker,
+            semantic_cache=semantic_cache,
+            model_router=model_router,
+            auth_service=auth_service,
+            knowledge_base=knowledge_base,
+            mcp_registry=mcp_registry,
+            response_validator=response_validator,
+            db_session_factory=get_db
+        )
         
         # Process the message through the pipeline
         result = await chat_pipeline.process_message(

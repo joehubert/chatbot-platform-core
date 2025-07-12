@@ -22,6 +22,10 @@ from app.core.config import settings
 from app.core.database import init_db, db_manager
 from app.core.redis import init_redis, redis_manager
 from app.core.security import SecurityHeaders
+from app.utils.logging import setup_logging
+
+setup_logging()
+from app.api import api_router
 
 # Setup logging
 logging.basicConfig(
@@ -96,27 +100,10 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Turnkey AI Chatbot platform...")
     
     try:
-        # Initialize database
-        logger.info("Initializing database connections...")
-        init_db()
-        
-        # Test database connection
-        db_healthy = await db_manager.test_connection()
-        if not db_healthy:
-            logger.error("Database connection failed!")
-            raise RuntimeError("Database connection failed")
-        logger.info("Database connection established")
-        
-        # Initialize Redis
-        logger.info("Initializing Redis connections...")
-        await init_redis()
-        
-        # Test Redis connection
-        redis_healthy = await redis_manager.test_connection()
-        if not redis_healthy:
-            logger.error("Redis connection failed!")
-            raise RuntimeError("Redis connection failed")
-        logger.info("Redis connection established")
+        # Initialize database and Redis
+        logger.info("Initializing database and Redis connections...")
+        await init_db()
+        logger.info("Database and Redis connections established")
         
         logger.info("Application startup completed successfully")
         
@@ -374,7 +361,7 @@ def setup_routes(app: FastAPI) -> None:
         return metrics_data
     
     # API routes will be added in future implementations
-    # app.include_router(api_router, prefix=settings.API_V1_STR)
+    app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 # Create the application instance

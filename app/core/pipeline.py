@@ -8,13 +8,13 @@ The pipeline handles the complete flow from rate limiting through response valid
 import logging
 from typing import Dict, Any, List, Optional, Annotated
 from uuid import uuid4
-from dataclasses import dataclass, field
 from datetime import datetime
+from app.schemas.pipeline import PipelineState
 
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
-from pydantic import BaseModel, Field
+from dataclasses import dataclass, field
 
 from app.core.pipeline_nodes import (
     RateLimitingNode,
@@ -27,7 +27,7 @@ from app.core.pipeline_nodes import (
     ConversationRecordingNode,
     CacheUpdateNode
 )
-from app.services.rate_limiting import RateLimitingService
+from app.services.rate_limiting import RateLimitService
 from app.services.relevance_checker import RelevanceChecker
 from app.services.cache import SemanticCacheService
 from app.services.model_router import ModelRouter
@@ -35,7 +35,7 @@ from app.services.auth_service import AuthService
 from app.services.knowledge_base import KnowledgeBaseService
 from app.services.mcp_registry import MCPRegistry
 from app.services.response_validator import ResponseValidator
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.models.conversation import Conversation
 from app.models.message import Message
 
@@ -113,7 +113,8 @@ class ChatbotPipeline:
         auth_service: AuthService,
         knowledge_base: KnowledgeBaseService,
         mcp_registry: MCPRegistry,
-        response_validator: ResponseValidator
+        response_validator: ResponseValidator,
+        db_session_factory
     ):
         self.rate_limiting_service = rate_limiting_service
         self.relevance_checker = relevance_checker
@@ -126,15 +127,15 @@ class ChatbotPipeline:
         
         # Initialize nodes
         self.rate_limiting_node = RateLimitingNode(rate_limiting_service)
-        self.relevance_check_node = RelevanceCheckNode(relevance_checker)
+        self.relevance_check_node = RelevanceCheckNode(relevance_checker, self.db_session_factory)
         self.semantic_cache_node = SemanticCacheNode(semantic_cache)
-        self.model_routing_node = ModelRoutingNode(model_router)
+        self.model_routing_node = ModelRoutingNode(model_router, self.db_session_factory)
         self.auth_node = AuthenticationNode(auth_service)
         self.question_processing_node = QuestionProcessingNode(
-            knowledge_base, mcp_registry
+            knowledge_base, mcp_registry, self.db_session_factory
         )
         self.response_validation_node = ResponseValidationNode(response_validator)
-        self.conversation_recording_node = ConversationRecordingNode()
+        self.conversation_recording_node = ConversationRecordingNode(self.db_session_factory)
         self.cache_update_node = CacheUpdateNode(semantic_cache)
         
         # Build the graph
@@ -372,31 +373,31 @@ class ChatbotPipeline:
         """Get conversation history for a session."""
         try:
             # Get conversation from database
-            db = next(get_db())
-            conversation = db.query(Conversation).filter(
-                Conversation.session_id == session_id
-            ).first()
-            
-            if not conversation:
-                return []
-            
-            # Get messages
-            messages = db.query(Message).filter(
-                Message.conversation_id == conversation.id
-            ).order_by(Message.timestamp.desc()).limit(limit).all()
-            
-            return [
-                {
-                    "id": str(msg.id),
-                    "content": msg.content,
-                    "role": msg.role,
-                    "timestamp": msg.timestamp.isoformat(),
-                    "model_used": msg.model_used,
-                    "cached": msg.cached,
-                    "processing_time_ms": msg.processing_time_ms
-                }
-                for msg in reversed(messages)
-            ]
+            with self.db_session_factory() as db:
+                conversation = db.query(Conversation).filter(
+                    Conversation.session_id == session_id
+                ).first()
+                
+                if not conversation:
+                    return []
+                
+                # Get messages
+                messages = db.query(Message).filter(
+                    Message.conversation_id == conversation.id
+                ).order_by(Message.timestamp.desc()).limit(limit).all()
+                
+                return [
+                    {
+                        "id": str(msg.id),
+                        "content": msg.content,
+                        "role": msg.role,
+                        "timestamp": msg.timestamp.isoformat(),
+                        "model_used": msg.model_used,
+                        "cached": msg.cached,
+                        "processing_time_ms": msg.processing_time_ms
+                    }
+                    for msg in reversed(messages)
+                ]
             
         except Exception as e:
             logger.error(f"Error retrieving conversation history: {str(e)}")

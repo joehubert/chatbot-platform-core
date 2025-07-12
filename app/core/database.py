@@ -85,12 +85,14 @@ class DatabaseManager:
             with self.sync_engine.connect() as conn:
                 # Use text() to create executable SQL
                 result = conn.execute(text("SELECT 1"))
-                result.fetchone()
+                if result.fetchone() is None:
+                    return False
 
             # Test async connection
             async with self.async_engine.connect() as conn:
                 result = await conn.execute(text("SELECT 1"))
-                await result.fetchone()
+                if result.fetchone() is None:
+                    return False
 
             logger.info("Database connection test successful")
             return True

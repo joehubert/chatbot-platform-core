@@ -21,7 +21,7 @@ from sqlalchemy import (
     BigInteger,
     Enum as SQLEnum,
 )
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSON
 from sqlalchemy.orm import Mapped
 from .base import Base
 
@@ -150,9 +150,9 @@ class Document(Base):
         comment="Hash of the document content for deduplication",
     )
 
-    # Metadata and error handling
-    metadata: Mapped[Optional[str]] = Column(
-        Text, nullable=True, comment="Additional metadata stored as JSON"
+    # Additional data
+    data: Mapped[Optional[dict]] = Column(
+        JSON, nullable=True, comment="Additional data stored as JSON"
     )
 
     error_message: Mapped[Optional[str]] = Column(

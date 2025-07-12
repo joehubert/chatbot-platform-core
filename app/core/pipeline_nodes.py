@@ -10,8 +10,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from uuid import uuid4
 
-from app.core.pipeline import PipelineState
-from app.services.rate_limiting import RateLimitingService
+from app.schemas.pipeline import PipelineState
+from app.services.rate_limiting import RateLimitService
 from app.services.relevance_checker import RelevanceChecker
 from app.services.cache import SemanticCacheService
 from app.services.model_router import ModelRouter
@@ -19,7 +19,7 @@ from app.services.auth_service import AuthService
 from app.services.knowledge_base import KnowledgeBaseService
 from app.services.mcp_registry import MCPRegistry
 from app.services.response_validator import ResponseValidator
-from app.core.database import get_db
+
 from app.models.conversation import Conversation
 from app.models.message import Message
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class RateLimitingNode:
     """Node for handling rate limiting checks."""
     
-    def __init__(self, rate_limiting_service: RateLimitingService):
+    def __init__(self, rate_limiting_service: RateLimitService):
         self.rate_limiting_service = rate_limiting_service
     
     async def process(self, state: PipelineState) -> PipelineState:
@@ -66,8 +66,9 @@ class RateLimitingNode:
 class RelevanceCheckNode:
     """Node for checking query relevance and handling clarification."""
     
-    def __init__(self, relevance_checker: RelevanceChecker):
+    def __init__(self, relevance_checker: RelevanceChecker, db_session_factory):
         self.relevance_checker = relevance_checker
+        self.db_session_factory = db_session_factory
     
     async def process(self, state: PipelineState) -> PipelineState:
         """Process relevance checking for the query."""
@@ -115,26 +116,26 @@ class RelevanceCheckNode:
     async def _get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
         """Get recent conversation history for context."""
         try:
-            db = next(get_db())
-            conversation = db.query(Conversation).filter(
-                Conversation.session_id == session_id
-            ).first()
-            
-            if not conversation:
-                return []
-            
-            messages = db.query(Message).filter(
-                Message.conversation_id == conversation.id
-            ).order_by(Message.timestamp.desc()).limit(10).all()
-            
-            return [
-                {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat()
-                }
-                for msg in reversed(messages)
-            ]
+            with self.db_session_factory() as db:
+                conversation = db.query(Conversation).filter(
+                    Conversation.session_id == session_id
+                ).first()
+                
+                if not conversation:
+                    return []
+                
+                messages = db.query(Message).filter(
+                    Message.conversation_id == conversation.id
+                ).order_by(Message.timestamp.desc()).limit(10).all()
+                
+                return [
+                    {
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": msg.timestamp.isoformat()
+                    }
+                    for msg in reversed(messages)
+                ]
             
         except Exception as e:
             logger.error(f"Error getting conversation history: {str(e)}")
@@ -179,8 +180,9 @@ class SemanticCacheNode:
 class ModelRoutingNode:
     """Node for routing requests to appropriate models."""
     
-    def __init__(self, model_router: ModelRouter):
+    def __init__(self, model_router: ModelRouter, db_session_factory):
         self.model_router = model_router
+        self.db_session_factory = db_session_factory
     
     async def process(self, state: PipelineState) -> PipelineState:
         """Process model routing decision."""
@@ -208,26 +210,26 @@ class ModelRoutingNode:
     async def _get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
         """Get recent conversation history for context."""
         try:
-            db = next(get_db())
-            conversation = db.query(Conversation).filter(
-                Conversation.session_id == session_id
-            ).first()
-            
-            if not conversation:
-                return []
-            
-            messages = db.query(Message).filter(
-                Message.conversation_id == conversation.id
-            ).order_by(Message.timestamp.desc()).limit(5).all()
-            
-            return [
-                {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat()
-                }
-                for msg in reversed(messages)
-            ]
+            with self.db_session_factory() as db:
+                conversation = db.query(Conversation).filter(
+                    Conversation.session_id == session_id
+                ).first()
+                
+                if not conversation:
+                    return []
+                
+                messages = db.query(Message).filter(
+                    Message.conversation_id == conversation.id
+                ).order_by(Message.timestamp.desc()).limit(5).all()
+                
+                return [
+                    {
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": msg.timestamp.isoformat()
+                    }
+                    for msg in reversed(messages)
+                ]
             
         except Exception as e:
             logger.error(f"Error getting conversation history: {str(e)}")
@@ -282,9 +284,10 @@ class AuthenticationNode:
 class QuestionProcessingNode:
     """Node for processing the actual question using RAG and MCP tools."""
     
-    def __init__(self, knowledge_base: KnowledgeBaseService, mcp_registry: MCPRegistry):
+    def __init__(self, knowledge_base: KnowledgeBaseService, mcp_registry: MCPRegistry, db_session_factory):
         self.knowledge_base = knowledge_base
         self.mcp_registry = mcp_registry
+        self.db_session_factory = db_session_factory
     
     async def process(self, state: PipelineState) -> PipelineState:
         """Process the question using available resources."""
@@ -351,26 +354,26 @@ class QuestionProcessingNode:
     async def _get_conversation_history(self, session_id: str) -> List[Dict[str, Any]]:
         """Get recent conversation history for context."""
         try:
-            db = next(get_db())
-            conversation = db.query(Conversation).filter(
-                Conversation.session_id == session_id
-            ).first()
-            
-            if not conversation:
-                return []
-            
-            messages = db.query(Message).filter(
-                Message.conversation_id == conversation.id
-            ).order_by(Message.timestamp.desc()).limit(10).all()
-            
-            return [
-                {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat()
-                }
-                for msg in reversed(messages)
-            ]
+            with self.db_session_factory() as db:
+                conversation = db.query(Conversation).filter(
+                    Conversation.session_id == session_id
+                ).first()
+                
+                if not conversation:
+                    return []
+                
+                messages = db.query(Message).filter(
+                    Message.conversation_id == conversation.id
+                ).order_by(Message.timestamp.desc()).limit(10).all()
+                
+                return [
+                    {
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": msg.timestamp.isoformat()
+                    }
+                    for msg in reversed(messages)
+                ]
             
         except Exception as e:
             logger.error(f"Error getting conversation history: {str(e)}")
@@ -420,8 +423,8 @@ class ResponseValidationNode:
 class ConversationRecordingNode:
     """Node for recording the conversation and tracking metrics."""
     
-    def __init__(self):
-        pass
+    def __init__(self, db_session_factory):
+        self.db_session_factory = db_session_factory
     
     async def process(self, state: PipelineState) -> PipelineState:
         """Process conversation recording and metrics."""
@@ -431,57 +434,57 @@ class ConversationRecordingNode:
             state.processing_time_ms = int(processing_time)
             
             # Get or create conversation
-            db = next(get_db())
-            conversation = db.query(Conversation).filter(
-                Conversation.session_id == state.session_id
-            ).first()
-            
-            if not conversation:
-                conversation = Conversation(
+            with self.db_session_factory() as db:
+                conversation = db.query(Conversation).filter(
+                    Conversation.session_id == state.session_id
+                ).first()
+                
+                if not conversation:
+                    conversation = Conversation(
+                        id=uuid4(),
+                        session_id=state.session_id,
+                        user_identifier=state.user_id,
+                        started_at=datetime.now(),
+                        resolved=False,
+                        resolution_attempts=0,
+                        authenticated=state.is_authenticated
+                    )
+                    db.add(conversation)
+                    db.commit()
+                    state.conversation_id = str(conversation.id)
+                
+                # Update conversation metrics
+                conversation.resolution_attempts = state.resolution_attempts
+                conversation.resolved = state.is_resolved
+                conversation.authenticated = state.is_authenticated
+                
+                # Record user message
+                user_message = Message(
                     id=uuid4(),
-                    session_id=state.session_id,
-                    user_identifier=state.user_id,
-                    started_at=datetime.now(),
-                    resolved=False,
-                    resolution_attempts=0,
-                    authenticated=state.is_authenticated
+                    conversation_id=conversation.id,
+                    content=state.message,
+                    role="user",
+                    timestamp=datetime.now(),
+                    model_used="",
+                    cached=False,
+                    processing_time_ms=0
                 )
-                db.add(conversation)
+                db.add(user_message)
+                
+                # Record assistant response
+                assistant_message = Message(
+                    id=uuid4(),
+                    conversation_id=conversation.id,
+                    content=state.response,
+                    role="assistant",
+                    timestamp=datetime.now(),
+                    model_used=state.model_used,
+                    cached=state.cache_hit,
+                    processing_time_ms=state.processing_time_ms
+                )
+                db.add(assistant_message)
+                
                 db.commit()
-                state.conversation_id = str(conversation.id)
-            
-            # Update conversation metrics
-            conversation.resolution_attempts = state.resolution_attempts
-            conversation.resolved = state.is_resolved
-            conversation.authenticated = state.is_authenticated
-            
-            # Record user message
-            user_message = Message(
-                id=uuid4(),
-                conversation_id=conversation.id,
-                content=state.message,
-                role="user",
-                timestamp=datetime.now(),
-                model_used="",
-                cached=False,
-                processing_time_ms=0
-            )
-            db.add(user_message)
-            
-            # Record assistant response
-            assistant_message = Message(
-                id=uuid4(),
-                conversation_id=conversation.id,
-                content=state.response,
-                role="assistant",
-                timestamp=datetime.now(),
-                model_used=state.model_used,
-                cached=state.cache_hit,
-                processing_time_ms=state.processing_time_ms
-            )
-            db.add(assistant_message)
-            
-            db.commit()
             
             logger.info(f"Conversation recorded for session {state.session_id}")
             
