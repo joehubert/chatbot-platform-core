@@ -34,7 +34,7 @@ from app.services.knowledge_base import KnowledgeBaseService
 from app.services.mcp_registry import MCPRegistry
 from app.services.mcp_client import MCPClient
 from app.services.response_validator import ResponseValidator
-from app.utils.logger import get_logger
+from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
