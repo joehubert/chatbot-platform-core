@@ -25,7 +25,7 @@ from app.core.pipeline_nodes import (
     QuestionProcessingNode,
     ResponseValidationNode,
     ConversationRecordingNode,
-    CacheUpdateNode
+    CacheUpdateNode,
 )
 from app.services.rate_limiting import RateLimitService
 from app.services.relevance_checker import RelevanceChecker
@@ -41,59 +41,61 @@ from app.models.message import Message
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class PipelineState:
     """State maintained throughout the pipeline execution."""
+
     # Request data
     message: str = ""
     session_id: str = ""
     user_id: Optional[str] = None
     context: Dict[str, Any] = field(default_factory=dict)
-    
+
     # Processing state
     conversation_id: str = ""
     is_relevant: bool = False
     relevance_confidence: float = 0.0
     clarification_attempts: int = 0
     max_clarification_attempts: int = 3
-    
+
     # Cache state
     cache_hit: bool = False
     cached_response: str = ""
     cache_similarity: float = 0.0
-    
+
     # Model routing
     selected_model: str = ""
     query_complexity: str = ""
     routing_reasoning: str = ""
-    
+
     # Authentication
     requires_auth: bool = False
     auth_methods: List[str] = field(default_factory=list)
     is_authenticated: bool = False
     auth_session_id: Optional[str] = None
-    
+
     # Processing results
     response: str = ""
     rag_sources: List[Dict[str, Any]] = field(default_factory=list)
     mcp_tools_used: List[str] = field(default_factory=list)
-    
+
     # Validation
     is_valid_response: bool = False
     validation_issues: List[str] = field(default_factory=list)
-    
+
     # Resolution tracking
     resolution_attempts: int = 0
     is_resolved: bool = False
     user_feedback: Optional[str] = None
-    
+
     # Metadata
     processing_start_time: datetime = field(default_factory=datetime.now)
     processing_time_ms: int = 0
     model_used: str = ""
     tokens_used: int = 0
     cost_estimate: float = 0.0
-    
+
     # Error handling
     error_message: str = ""
     should_retry: bool = False
@@ -103,10 +105,10 @@ class PipelineState:
 
 class ChatbotPipeline:
     """Main pipeline orchestrator using LangGraph."""
-    
+
     def __init__(
         self,
-        rate_limiting_service: RateLimitingService,
+        rate_limiting_service: RateLimitService,
         relevance_checker: RelevanceChecker,
         semantic_cache: SemanticCacheService,
         model_router: ModelRouter,
@@ -114,7 +116,7 @@ class ChatbotPipeline:
         knowledge_base: KnowledgeBaseService,
         mcp_registry: MCPRegistry,
         response_validator: ResponseValidator,
-        db_session_factory
+        db_session_factory,
     ):
         self.rate_limiting_service = rate_limiting_service
         self.relevance_checker = relevance_checker
@@ -124,29 +126,35 @@ class ChatbotPipeline:
         self.knowledge_base = knowledge_base
         self.mcp_registry = mcp_registry
         self.response_validator = response_validator
-        
+
         # Initialize nodes
         self.rate_limiting_node = RateLimitingNode(rate_limiting_service)
-        self.relevance_check_node = RelevanceCheckNode(relevance_checker, self.db_session_factory)
+        self.relevance_check_node = RelevanceCheckNode(
+            relevance_checker, self.db_session_factory
+        )
         self.semantic_cache_node = SemanticCacheNode(semantic_cache)
-        self.model_routing_node = ModelRoutingNode(model_router, self.db_session_factory)
+        self.model_routing_node = ModelRoutingNode(
+            model_router, self.db_session_factory
+        )
         self.auth_node = AuthenticationNode(auth_service)
         self.question_processing_node = QuestionProcessingNode(
             knowledge_base, mcp_registry, self.db_session_factory
         )
         self.response_validation_node = ResponseValidationNode(response_validator)
-        self.conversation_recording_node = ConversationRecordingNode(self.db_session_factory)
+        self.conversation_recording_node = ConversationRecordingNode(
+            self.db_session_factory
+        )
         self.cache_update_node = CacheUpdateNode(semantic_cache)
-        
+
         # Build the graph
         self.graph = self._build_graph()
-        
+
     def _build_graph(self) -> StateGraph:
         """Build the LangGraph processing pipeline."""
-        
+
         # Create the graph
         workflow = StateGraph(PipelineState)
-        
+
         # Add nodes
         workflow.add_node("rate_limiting", self.rate_limiting_node.process)
         workflow.add_node("relevance_check", self.relevance_check_node.process)
@@ -155,15 +163,17 @@ class ChatbotPipeline:
         workflow.add_node("authentication", self.auth_node.process)
         workflow.add_node("question_processing", self.question_processing_node.process)
         workflow.add_node("response_validation", self.response_validation_node.process)
-        workflow.add_node("conversation_recording", self.conversation_recording_node.process)
+        workflow.add_node(
+            "conversation_recording", self.conversation_recording_node.process
+        )
         workflow.add_node("cache_update", self.cache_update_node.process)
-        
+
         # Define the flow
         workflow.set_entry_point("rate_limiting")
-        
+
         # Rate limiting -> relevance check
         workflow.add_edge("rate_limiting", "relevance_check")
-        
+
         # Relevance check -> conditional routing
         workflow.add_conditional_edges(
             "relevance_check",
@@ -171,36 +181,33 @@ class ChatbotPipeline:
             {
                 "continue": "semantic_cache",
                 "clarify": "relevance_check",
-                "irrelevant": "conversation_recording"
-            }
+                "irrelevant": "conversation_recording",
+            },
         )
-        
+
         # Semantic cache -> conditional routing
         workflow.add_conditional_edges(
             "semantic_cache",
             self._should_continue_after_cache,
-            {
-                "cache_hit": "response_validation",
-                "cache_miss": "model_routing"
-            }
+            {"cache_hit": "response_validation", "cache_miss": "model_routing"},
         )
-        
+
         # Model routing -> authentication check
         workflow.add_edge("model_routing", "authentication")
-        
+
         # Authentication -> conditional routing
         workflow.add_conditional_edges(
             "authentication",
             self._should_continue_after_auth,
             {
                 "authenticated": "question_processing",
-                "needs_auth": "conversation_recording"
-            }
+                "needs_auth": "conversation_recording",
+            },
         )
-        
+
         # Question processing -> response validation
         workflow.add_edge("question_processing", "response_validation")
-        
+
         # Response validation -> conditional routing
         workflow.add_conditional_edges(
             "response_validation",
@@ -208,50 +215,47 @@ class ChatbotPipeline:
             {
                 "valid": "conversation_recording",
                 "retry": "question_processing",
-                "failed": "conversation_recording"
-            }
+                "failed": "conversation_recording",
+            },
         )
-        
+
         # Conversation recording -> cache update
         workflow.add_conditional_edges(
             "conversation_recording",
             self._should_update_cache,
-            {
-                "update_cache": "cache_update",
-                "end": END
-            }
+            {"update_cache": "cache_update", "end": END},
         )
-        
+
         # Cache update -> end
         workflow.add_edge("cache_update", END)
-        
+
         # Compile the graph
         memory = MemorySaver()
         return workflow.compile(checkpointer=memory)
-    
+
     def _should_continue_after_relevance(self, state: PipelineState) -> str:
         """Determine the next step after relevance checking."""
         if state.error_message:
             return "irrelevant"
-        
+
         if not state.is_relevant:
             if state.clarification_attempts < state.max_clarification_attempts:
                 return "clarify"
             else:
                 return "irrelevant"
-        
+
         return "continue"
-    
+
     def _should_continue_after_cache(self, state: PipelineState) -> str:
         """Determine the next step after cache check."""
         return "cache_hit" if state.cache_hit else "cache_miss"
-    
+
     def _should_continue_after_auth(self, state: PipelineState) -> str:
         """Determine the next step after authentication."""
         if state.requires_auth and not state.is_authenticated:
             return "needs_auth"
         return "authenticated"
-    
+
     def _should_continue_after_validation(self, state: PipelineState) -> str:
         """Determine the next step after response validation."""
         if not state.is_valid_response:
@@ -261,25 +265,27 @@ class ChatbotPipeline:
             else:
                 return "failed"
         return "valid"
-    
+
     def _should_update_cache(self, state: PipelineState) -> str:
         """Determine if cache should be updated."""
-        if (state.is_resolved and 
-            state.is_valid_response and 
-            not state.cache_hit and 
-            not state.error_message):
+        if (
+            state.is_resolved
+            and state.is_valid_response
+            and not state.cache_hit
+            and not state.error_message
+        ):
             return "update_cache"
         return "end"
-    
+
     async def process_message(
         self,
         message: str,
         session_id: str,
         user_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None
+        context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Process a chat message through the complete pipeline."""
-        
+
         # Initialize state
         state = PipelineState(
             message=message,
@@ -287,18 +293,20 @@ class ChatbotPipeline:
             user_id=user_id,
             context=context or {},
             conversation_id=str(uuid4()),
-            processing_start_time=datetime.now()
+            processing_start_time=datetime.now(),
         )
-        
+
         try:
             # Run the pipeline
             config = {"configurable": {"thread_id": session_id}}
             result = await self.graph.ainvoke(state, config=config)
-            
+
             # Calculate processing time
-            processing_time = (datetime.now() - state.processing_start_time).total_seconds() * 1000
+            processing_time = (
+                datetime.now() - state.processing_start_time
+            ).total_seconds() * 1000
             result.processing_time_ms = int(processing_time)
-            
+
             # Return the response
             return {
                 "response": result.response,
@@ -312,9 +320,9 @@ class ChatbotPipeline:
                 "is_resolved": result.is_resolved,
                 "rag_sources": result.rag_sources,
                 "mcp_tools_used": result.mcp_tools_used,
-                "error_message": result.error_message
+                "error_message": result.error_message,
             }
-            
+
         except Exception as e:
             logger.error(f"Pipeline processing error: {str(e)}")
             return {
@@ -329,14 +337,11 @@ class ChatbotPipeline:
                 "is_resolved": False,
                 "rag_sources": [],
                 "mcp_tools_used": [],
-                "error_message": str(e)
+                "error_message": str(e),
             }
-    
+
     async def handle_auth_request(
-        self,
-        session_id: str,
-        contact_method: str,
-        contact_value: str
+        self, session_id: str, contact_method: str, contact_value: str
     ) -> Dict[str, Any]:
         """Handle authentication token request."""
         try:
@@ -345,47 +350,43 @@ class ChatbotPipeline:
             )
         except Exception as e:
             logger.error(f"Auth request error: {str(e)}")
-            return {
-                "success": False,
-                "error": "Failed to send authentication token"
-            }
-    
+            return {"success": False, "error": "Failed to send authentication token"}
+
     async def handle_auth_verification(
-        self,
-        session_id: str,
-        token: str
+        self, session_id: str, token: str
     ) -> Dict[str, Any]:
         """Handle authentication token verification."""
         try:
             return await self.auth_service.verify_token(session_id, token)
         except Exception as e:
             logger.error(f"Auth verification error: {str(e)}")
-            return {
-                "success": False,
-                "error": "Failed to verify authentication token"
-            }
-    
+            return {"success": False, "error": "Failed to verify authentication token"}
+
     async def get_conversation_history(
-        self,
-        session_id: str,
-        limit: int = 50
+        self, session_id: str, limit: int = 50
     ) -> List[Dict[str, Any]]:
         """Get conversation history for a session."""
         try:
             # Get conversation from database
             with self.db_session_factory() as db:
-                conversation = db.query(Conversation).filter(
-                    Conversation.session_id == session_id
-                ).first()
-                
+                conversation = (
+                    db.query(Conversation)
+                    .filter(Conversation.session_id == session_id)
+                    .first()
+                )
+
                 if not conversation:
                     return []
-                
+
                 # Get messages
-                messages = db.query(Message).filter(
-                    Message.conversation_id == conversation.id
-                ).order_by(Message.timestamp.desc()).limit(limit).all()
-                
+                messages = (
+                    db.query(Message)
+                    .filter(Message.conversation_id == conversation.id)
+                    .order_by(Message.timestamp.desc())
+                    .limit(limit)
+                    .all()
+                )
+
                 return [
                     {
                         "id": str(msg.id),
@@ -394,15 +395,15 @@ class ChatbotPipeline:
                         "timestamp": msg.timestamp.isoformat(),
                         "model_used": msg.model_used,
                         "cached": msg.cached,
-                        "processing_time_ms": msg.processing_time_ms
+                        "processing_time_ms": msg.processing_time_ms,
                     }
                     for msg in reversed(messages)
                 ]
-            
+
         except Exception as e:
             logger.error(f"Error retrieving conversation history: {str(e)}")
             return []
-    
+
     async def get_pipeline_health(self) -> Dict[str, Any]:
         """Get pipeline health status."""
         try:
@@ -416,25 +417,23 @@ class ChatbotPipeline:
                     "auth_service": await self.auth_service.health_check(),
                     "knowledge_base": await self.knowledge_base.health_check(),
                     "mcp_registry": await self.mcp_registry.health_check(),
-                    "response_validator": await self.response_validator.health_check()
-                }
+                    "response_validator": await self.response_validator.health_check(),
+                },
             }
-            
+
             # Check if any component is unhealthy
             unhealthy_components = [
-                name for name, status in health_status["components"].items()
+                name
+                for name, status in health_status["components"].items()
                 if status != "healthy"
             ]
-            
+
             if unhealthy_components:
                 health_status["pipeline"] = "degraded"
                 health_status["issues"] = unhealthy_components
-            
+
             return health_status
-            
+
         except Exception as e:
             logger.error(f"Health check error: {str(e)}")
-            return {
-                "pipeline": "unhealthy",
-                "error": str(e)
-            }
+            return {"pipeline": "unhealthy", "error": str(e)}
