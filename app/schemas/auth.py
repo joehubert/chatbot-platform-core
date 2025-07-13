@@ -3,6 +3,17 @@ Authentication API Schemas
 
 Pydantic schemas for authentication-related API endpoints including
 OTP request/verification and session management.
+
+Model Classes:
+---------------
+1. AuthRequest:         Request an authentication token (OTP) via SMS or email.
+2. AuthVerification:    Verify an authentication token (OTP) for a session.
+3. AuthResponse:        Response to an authentication token request (success, message, expiry, retry info).
+4. TokenResponse:       Response to token verification (success, session token, expiry, user info).
+5. SessionInfo:         Information about an authentication session (status, timestamps, user).
+6. UserProfile:         User profile information (ID, contact info, authentication stats).
+7. AuthStatus:          Status of authentication for a session (authenticated, expiry, renewal info).
+8. AuthError:           Error response for authentication failures (error code, message, suggestions).
 """
 
 from datetime import datetime

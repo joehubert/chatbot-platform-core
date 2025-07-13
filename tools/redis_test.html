@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redis Health Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .test-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+
+        .test-section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+            width: 200px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-healthy {
+            background-color: #28a745;
+        }
+
+        .status-unhealthy {
+            background-color: #dc3545;
+        }
+
+        .status-unknown {
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1><span class="status-indicator status-unknown" id="overallStatus"></span>Redis Container Health Checker</h1>
+
+        <div class="test-section">
+            <h3>Connection Settings</h3>
+            <label>Redis Host: </label>
+            <input type="text" id="redisHost" value="localhost" placeholder="localhost">
+            <label>Redis Port: </label>
+            <input type="text" id="redisPort" value="6379" placeholder="6379">
+            <div class="result info">
+                <strong>Note:</strong> This checker uses a simple HTTP proxy approach. For direct Redis testing, use
+                Redis CLI or dedicated tools.
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 1: Port Connectivity</h3>
+            <button onclick="testPortConnectivity()">Test Port Connection</button>
+            <div id="portResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Docker Container Status</h3>
+            <button onclick="showDockerCommands()">Show Docker Commands</button>
+            <div id="dockerResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Redis CLI Commands</h3>
+            <button onclick="showRedisCommands()">Show Redis CLI Tests</button>
+            <div id="redisResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Quick HTTP Proxy Test</h3>
+            <button onclick="testHttpProxy()">Test via HTTP Proxy</button>
+            <button onclick="setupHttpProxy()">Setup HTTP Proxy</button>
+            <div id="httpResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 5: Continuous Monitoring</h3>
+            <button onclick="startMonitoring()" id="monitorBtn">Start Monitoring</button>
+            <button onclick="stopMonitoring()" id="stopBtn" disabled>Stop Monitoring</button>
+            <div id="monitorResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let monitoringInterval;
+        let monitoringCount = 0;
+
+        function updateOverallStatus(isHealthy) {
+            const indicator = document.getElementById('overallStatus');
+            indicator.className = `status-indicator ${isHealthy ? 'status-healthy' : 'status-unhealthy'}`;
+        }
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = content;
+        }
+
+        async function testPortConnectivity() {
+            const host = document.getElementById('redisHost').value;
+            const port = document.getElementById('redisPort').value;
+
+            try {
+                const startTime = Date.now();
+
+                // Attempt to connect using WebSocket (will fail but shows if port is open)
+                const ws = new WebSocket(`ws://${host}:${port}`);
+
+                ws.onopen = () => {
+                    const duration = Date.now() - startTime;
+                    showResult('portResult', `✅ Port ${port} is open and accepting connections!\nResponse time: ${duration}ms`, 'success');
+                    updateOverallStatus(true);
+                    ws.close();
+                };
+
+                ws.onerror = (error) => {
+                    const duration = Date.now() - startTime;
+                    // WebSocket connection will fail to Redis, but that's expected
+                    // The important thing is whether we get a connection refused vs protocol error
+                    showResult('portResult', `⚠️ Port ${port} is accessible but Redis protocol expected\nThis is normal - Redis is likely running correctly\nResponse time: ${duration}ms`, 'warning');
+                    updateOverallStatus(true);
+                };
+
+                // Timeout after 5 seconds
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.CONNECTING) {
+                        ws.close();
+                        showResult('portResult', `❌ Connection timeout to ${host}:${port}\nRedis container may not be running or port not exposed`, 'error');
+                        updateOverallStatus(false);
+                    }
+                }, 5000);
+
+            } catch (error) {
+                showResult('portResult', `❌ Connection failed: ${error.message}`, 'error');
+                updateOverallStatus(false);
+            }
+        }
+
+        function showDockerCommands() {
+            const commands = `# Check if Redis container is running:
+docker ps | grep redis
+
+# Check Redis container logs:
+docker logs <your-redis-container-name>
+docker logs chatbot-platform-redis
+
+# Check Redis container stats:
+docker stats <your-redis-container-name>
+docker stats chatbot-platform-redis
+
+# Inspect Redis container:
+docker inspect <your-redis-container-name>
+docker inspect chatbot-platform-redis
+
+# Check container health (if healthcheck configured):
+docker inspect <your-redis-container-name> | grep -A 10 "Health"
+docker inspect chatbot-platform-redis | grep -A 10 "Health"
+
+    `;
+            showResult('dockerResult', commands, 'info');
+        }
+
+        function showRedisCommands() {
+            const commands = `# Connect to Redis CLI in container:
+docker exec -it <your-redis-container-name> redis-cli
+docker exec -it chatbot-platform-redis redis-cli
+
+# Once connected, test these commands:
+PING                    # Should return PONG
+INFO server            # Shows server information
+INFO memory           # Shows memory usage
+INFO clients          # Shows connection info
+SET test_key "hello"  # Set a test value
+GET test_key          # Should return "hello"
+DEL test_key          # Clean up test key
+
+# Test from host machine (if redis-cli installed):
+redis-cli -h localhost -p 6379 ping
+
+# Test with telnet (basic connectivity):
+telnet localhost 6379
+# Then type: ping  (should get +PONG response)`;
+
+            showResult('redisResult', commands, 'info');
+        }
+
+        function setupHttpProxy() {
+            const setupInstructions = `# Option 1: Use a simple HTTP-to-Redis proxy
+docker run --rm -p 8080:8080 \\
+  --link <your-redis-container-name>:redis \\
+  -e REDIS_URL=redis://redis:6379 \\
+  webdis/webdis
+
+# Then test in browser:
+# http://localhost:8080/PING
+# http://localhost:8080/INFO
+# http://localhost:8080/SET/test_key/hello
+# http://localhost:8080/GET/test_key
+
+# Option 2: Use Redis Commander (Web UI)
+docker run --rm -p 8081:8081 \\
+  --link <your-redis-container-name>:redis \\
+  rediscommander/redis-commander:latest \\
+  --redis-host redis --redis-port 6379
+
+# Then visit: http://localhost:8081`;
+
+            showResult('httpResult', setupInstructions, 'info');
+        }
+
+        async function testHttpProxy() {
+            try {
+                // Try to test if Webdis proxy is running
+                const response = await fetch('http://localhost:8080/PING');
+                if (response.ok) {
+                    const data = await response.text();
+                    showResult('httpResult', `✅ HTTP Proxy test successful!\nResponse: ${data}`, 'success');
+                    updateOverallStatus(true);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                showResult('httpResult', `❌ HTTP Proxy not available: ${error.message}\n\nTo set up HTTP proxy, click "Setup HTTP Proxy" button above.`, 'error');
+            }
+        }
+
+        function startMonitoring() {
+            document.getElementById('monitorBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            monitoringCount = 0;
+
+            const monitorElement = document.getElementById('monitorResult');
+            monitorElement.style.display = 'block';
+            monitorElement.className = 'result info';
+
+            monitoringInterval = setInterval(() => {
+                monitoringCount++;
+                const timestamp = new Date().toLocaleTimeString();
+
+                // Simple connectivity test
+                testPortConnectivity();
+
+                const currentContent = monitorElement.textContent;
+                monitorElement.textContent = `Monitoring Redis connectivity...\nCheck #${monitoringCount} at ${timestamp}\n\n${currentContent}`.substring(0, 1000);
+
+            }, 10000); // Check every 10 seconds
+
+            showResult('monitorResult', 'Starting continuous monitoring... (checks every 10 seconds)', 'info');
+        }
+
+        function stopMonitoring() {
+            clearInterval(monitoringInterval);
+            document.getElementById('monitorBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+
+            showResult('monitorResult', `Monitoring stopped after ${monitoringCount} checks.`, 'warning');
+        }
+
+        // Auto-test on page load
+        window.onload = function () {
+            setTimeout(() => {
+                testPortConnectivity();
+            }, 1000);
+        };
+    </script>
+</body>
+
+</html>

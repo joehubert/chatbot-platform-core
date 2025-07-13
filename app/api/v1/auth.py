@@ -14,133 +14,67 @@ from app.schemas.auth import (
     AuthRequest,
     AuthResponse,
     AuthVerification,
-    SessionStatusResponse,
+    TokenResponse,
+    AuthStatus,
+    SessionInfo,
 )
 from app.services.auth_service import AuthService
-from app.services.otp_service import OTPService
 from app.services.session_service import SessionService
-from app.utils.logger import get_logger
+from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 router = APIRouter()
 
 
+@router.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
 @router.post("/request", response_model=AuthResponse)
-async def request_auth_token(
-    request: AuthRequest,
-    db: Session = Depends(get_db),
-    _: bool = Depends(check_rate_limit),
-):
-    """
-    Request an authentication token (OTP) to be sent via SMS or email.
+async def request_auth_token(request: AuthRequest, db: Session = Depends(get_db)):
+    auth_service = AuthService(db)
 
-    This endpoint triggers when MCP servers or tools require authentication.
-    The OTP is sent to the user's registered contact method.
-    """
-    try:
-        auth_service = AuthService(db)
-        otp_service = OTPService()
+    # Use AuthService method instead
+    result = await auth_service.request_auth_token(
+        contact_method=request.contact_method,
+        contact_value=request.contact_value,
+        session_id=request.session_id,
+    )
 
-        # Validate session exists
-        session_service = SessionService(db)
-        session = session_service.get_session(request.session_id)
-
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
-
-        # Find or create user based on contact method
-        user = auth_service.find_or_create_user(
-            contact_method=request.contact_method, contact_value=request.contact_value
-        )
-
-        # Generate and send OTP
-        otp_token = await otp_service.generate_and_send_otp(
-            user=user,
-            session_id=request.session_id,
-            contact_method=request.contact_method,
-            contact_value=request.contact_value,
-        )
-
-        logger.info(
-            f"OTP requested for session {request.session_id} via {request.contact_method}"
-        )
-
-        return AuthResponse(
-            success=True,
-            message=f"Authentication code sent via {request.contact_method}",
-            session_id=request.session_id,
-            expires_in=otp_service.get_otp_expiry_seconds(),
-            contact_method=request.contact_method,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error requesting auth token: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error sending authentication code")
+    return AuthResponse(
+        success=True,
+        message=f"Authentication code sent via {request.contact_method}",
+        expires_in=300,  # 5 minutes from settings
+        retry_after=None,
+    )
 
 
-@router.post("/verify", response_model=AuthVerification)
-async def verify_auth_token(
-    request: AuthVerification,
-    db: Session = Depends(get_db),
-    _: bool = Depends(check_rate_limit),
-):
-    """
-    Verify an authentication token (OTP) and establish an authenticated session.
+@router.post("/verify", response_model=TokenResponse)  # ✅ Correct response model
+async def verify_auth_token(request: AuthVerification, db: Session = Depends(get_db)):
+    auth_service = AuthService(db)
+    session_service = SessionService(db)
 
-    Upon successful verification, the user's session is marked as authenticated
-    and can access protected resources.
-    """
-    try:
-        auth_service = AuthService(db)
-        otp_service = OTPService()
-        session_service = SessionService(db)
+    # Use AuthService for verification
+    verification_result = await auth_service.verify_token(
+        session_id=request.session_id, token=request.token
+    )
 
-        # Verify the OTP token
-        verification_result = await otp_service.verify_otp(
-            session_id=request.session_id, token=request.token
-        )
+    if not verification_result.success:
+        raise HTTPException(status_code=400, detail=verification_result.message)
 
-        if not verification_result.valid:
-            raise HTTPException(
-                status_code=400,
-                detail=verification_result.error_message
-                or "Invalid or expired authentication code",
-            )
-
-        # Update session with authentication
-        session = session_service.authenticate_session(
-            session_id=request.session_id, user_id=verification_result.user_id
-        )
-
-        # Generate session token for continued authentication
-        session_token = auth_service.generate_session_token(
-            session_id=request.session_id, user_id=verification_result.user_id
-        )
-
-        logger.info(f"Authentication successful for session {request.session_id}")
-
-        return AuthVerification(
-            success=True,
-            message="Authentication successful",
-            session_id=request.session_id,
-            session_token=session_token,
-            expires_in=auth_service.get_session_expiry_seconds(),
-            user_id=str(verification_result.user_id),
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error verifying auth token: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail="Error verifying authentication code"
-        )
+    return TokenResponse(
+        success=True,
+        message="Authentication successful",
+        session_token=verification_result.session_token,
+        expires_at=verification_result.expires_at,
+        user_id=verification_result.user_id,
+    )
 
 
-@router.get("/session/{session_id}/status", response_model=SessionStatusResponse)
+@router.get("/session/{session_id}/status", response_model=AuthStatus)
 async def get_session_status(session_id: str, db: Session = Depends(get_db)):
     """
     Check the authentication status of a session.
@@ -160,7 +94,7 @@ async def get_session_status(session_id: str, db: Session = Depends(get_db)):
         is_authenticated = auth_service.is_session_authenticated(session_id)
         expires_at = auth_service.get_session_expiry(session_id)
 
-        return SessionStatusResponse(
+        return AuthStatus(
             session_id=session_id,
             authenticated=is_authenticated,
             expires_at=expires_at,
@@ -284,3 +218,13 @@ async def extend_session(
     except Exception as e:
         logger.error(f"Error extending session: {str(e)}")
         raise HTTPException(status_code=500, detail="Error extending session")
+
+
+@router.get("/status/{session_id}", response_model=AuthStatus)
+async def get_auth_status(session_id: str):
+    """Get authentication status for a session"""
+
+
+@router.get("/session/{session_id}", response_model=SessionInfo)
+async def get_session_info(session_id: str):
+    """Get session information"""

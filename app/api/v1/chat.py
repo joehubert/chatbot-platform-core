@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_db, get_current_user, check_rate_limit
 from app.core.database import get_async_db
 from app.core.pipeline import ChatbotPipeline
-from app.core.redis import get_redis
+from app.core.redis import get_redis_client
 from app.schemas.chat import (
     ChatMessage,
     ChatResponse,
@@ -64,9 +64,9 @@ async def send_message(
     try:
         # Initialize chat pipeline
         # Initialize services
-        rate_limiting_service = RateLimitService(redis_client=get_redis())
+        rate_limiting_service = RateLimitService(redis_client=get_redis_client())
         relevance_checker = RelevanceChecker()
-        semantic_cache = SemanticCacheService(redis_client=get_redis())
+        semantic_cache = SemanticCacheService(redis_client=get_redis_client())
         model_router = ModelRouter()
         auth_service = AuthService(db=db)
         knowledge_base = KnowledgeBaseService(db=db)
