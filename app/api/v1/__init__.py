@@ -14,4 +14,4 @@ router = APIRouter()
 router.include_router(chat.router, prefix="/chat", tags=["chat"])
 router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 
-__all__ = ["router", "chat", "auth"]
+__all__ = ["router", "chat", "auth", "health", "knowledge", "config", "analytics"]

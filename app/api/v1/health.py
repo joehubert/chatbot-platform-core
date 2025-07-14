@@ -1,6 +1,9 @@
 """
 Health check API endpoint for the chatbot platform.
 Provides comprehensive health monitoring including dependencies.
+
+TODO:
+- list the routes in the header
 """
 
 from typing import Dict, List, Any
@@ -25,22 +28,22 @@ logger = get_logger(__name__)
 async def health_check(db: Session = Depends(get_db)):
     """
     Comprehensive health check endpoint.
-    
+
     Returns:
         dict: Health status of the system and all dependencies
     """
     start_time = time.time()
-    
+
     health_status = {
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0",
         "uptime": time.time() - start_time,
-        "checks": {}
+        "checks": {},
     }
-    
+
     overall_healthy = True
-    
+
     # Check database
     try:
         db_status = await check_database_health(db)
@@ -52,10 +55,10 @@ async def health_check(db: Session = Depends(get_db)):
         health_status["checks"]["database"] = {
             "status": "unhealthy",
             "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         overall_healthy = False
-    
+
     # Check Redis
     try:
         redis_status = await check_redis_health()
@@ -67,10 +70,10 @@ async def health_check(db: Session = Depends(get_db)):
         health_status["checks"]["redis"] = {
             "status": "unhealthy",
             "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         overall_healthy = False
-    
+
     # Check Vector Database
     try:
         vector_db_status = await check_vector_db_health()
@@ -82,10 +85,10 @@ async def health_check(db: Session = Depends(get_db)):
         health_status["checks"]["vector_db"] = {
             "status": "unhealthy",
             "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         overall_healthy = False
-    
+
     # Check LLM Providers
     try:
         llm_status = await check_llm_providers_health()
@@ -97,21 +100,23 @@ async def health_check(db: Session = Depends(get_db)):
         health_status["checks"]["llm_providers"] = {
             "status": "degraded",
             "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-    
+
     # Set overall status
     if not overall_healthy:
         health_status["status"] = "unhealthy"
-    elif any(check.get("status") == "degraded" for check in health_status["checks"].values()):
+    elif any(
+        check.get("status") == "degraded" for check in health_status["checks"].values()
+    ):
         health_status["status"] = "degraded"
-    
+
     health_status["duration_ms"] = round((time.time() - start_time) * 1000, 2)
-    
+
     # Return appropriate HTTP status code
     if health_status["status"] == "unhealthy":
         raise HTTPException(status_code=503, detail=health_status)
-    
+
     return health_status
 
 
@@ -120,22 +125,19 @@ async def health_check(db: Session = Depends(get_db)):
 async def readiness_check(db: Session = Depends(get_db)):
     """
     Readiness check endpoint for Kubernetes.
-    
+
     Returns:
         dict: Simple ready/not ready status
     """
     try:
         # Quick database check
         db.execute("SELECT 1")
-        
+
         # Quick Redis check
         redis_client = await get_redis_client()
         await redis_client.ping()
-        
-        return {
-            "status": "ready",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
+
+        return {"status": "ready", "timestamp": datetime.now(timezone.utc).isoformat()}
     except Exception as e:
         logger.error(f"Readiness check failed: {str(e)}")
         raise HTTPException(
@@ -143,8 +145,8 @@ async def readiness_check(db: Session = Depends(get_db)):
             detail={
                 "status": "not_ready",
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
         )
 
 
@@ -153,43 +155,40 @@ async def readiness_check(db: Session = Depends(get_db)):
 async def liveness_check():
     """
     Liveness check endpoint for Kubernetes.
-    
+
     Returns:
         dict: Simple alive status
     """
-    return {
-        "status": "alive",
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
+    return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 async def check_database_health(db: Session) -> Dict[str, Any]:
     """Check database connectivity and performance."""
     start_time = time.time()
-    
+
     try:
         # Test basic connectivity
         result = db.execute("SELECT 1 as test")
         row = result.fetchone()
-        
+
         if not row or row[0] != 1:
             raise DatabaseError("Database query returned unexpected result")
-        
+
         # Test a more complex query to check performance
         db.execute("SELECT COUNT(*) FROM conversations LIMIT 1")
-        
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
-        
+
         status = "healthy"
         if duration_ms > 1000:  # > 1 second is concerning
             status = "degraded"
-        
+
         return {
             "status": status,
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        
+
     except Exception as e:
         duration_ms = round((time.time() - start_time) * 1000, 2)
         logger.error(f"Database health check failed: {str(e)}")
@@ -197,47 +196,47 @@ async def check_database_health(db: Session) -> Dict[str, Any]:
             "status": "unhealthy",
             "error": str(e),
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
 async def check_redis_health() -> Dict[str, Any]:
     """Check Redis connectivity and performance."""
     start_time = time.time()
-    
+
     try:
         redis_client = await get_redis_client()
-        
+
         # Test basic connectivity
         pong = await redis_client.ping()
         if not pong:
             raise CacheError("Redis ping failed")
-        
+
         # Test read/write operations
         test_key = "health_check_test"
         test_value = "test_value"
-        
+
         await redis_client.set(test_key, test_value, ex=60)  # Expire in 60 seconds
         retrieved_value = await redis_client.get(test_key)
-        
+
         if retrieved_value != test_value:
             raise CacheError("Redis read/write test failed")
-        
+
         # Clean up
         await redis_client.delete(test_key)
-        
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
-        
+
         status = "healthy"
         if duration_ms > 500:  # > 500ms is concerning for Redis
             status = "degraded"
-        
+
         return {
             "status": status,
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        
+
     except Exception as e:
         duration_ms = round((time.time() - start_time) * 1000, 2)
         logger.error(f"Redis health check failed: {str(e)}")
@@ -245,33 +244,33 @@ async def check_redis_health() -> Dict[str, Any]:
             "status": "unhealthy",
             "error": str(e),
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
 async def check_vector_db_health() -> Dict[str, Any]:
     """Check vector database connectivity and performance."""
     start_time = time.time()
-    
+
     try:
         vector_db = VectorDBService()
-        
+
         # Test basic connectivity - this will vary based on the vector DB implementation
         # For now, we'll just check if the service initializes properly
         await vector_db.health_check()
-        
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
-        
+
         status = "healthy"
         if duration_ms > 2000:  # > 2 seconds is concerning
             status = "degraded"
-        
+
         return {
             "status": status,
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        
+
     except Exception as e:
         duration_ms = round((time.time() - start_time) * 1000, 2)
         logger.error(f"Vector DB health check failed: {str(e)}")
@@ -279,60 +278,62 @@ async def check_vector_db_health() -> Dict[str, Any]:
             "status": "unhealthy",
             "error": str(e),
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
 async def check_llm_providers_health() -> Dict[str, Any]:
     """Check LLM provider connectivity and availability."""
     start_time = time.time()
-    
+
     try:
         llm_factory = LLMFactory()
         provider_statuses = {}
-        
+
         # Get configured providers
         providers = ["openai", "anthropic", "huggingface"]  # Add others as configured
-        
+
         # Check each provider asynchronously
         tasks = []
         for provider in providers:
             task = check_llm_provider_health(llm_factory, provider)
             tasks.append(task)
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         for i, provider in enumerate(providers):
             if isinstance(results[i], Exception):
                 provider_statuses[provider] = {
                     "status": "unhealthy",
-                    "error": str(results[i])
+                    "error": str(results[i]),
                 }
             else:
                 provider_statuses[provider] = results[i]
-        
+
         # Determine overall status
-        healthy_count = sum(1 for status in provider_statuses.values() if status["status"] == "healthy")
+        healthy_count = sum(
+            1 for status in provider_statuses.values() if status["status"] == "healthy"
+        )
         total_count = len(provider_statuses)
-        
+
         if healthy_count == 0:
             overall_status = "unhealthy"
         elif healthy_count < total_count:
             overall_status = "degraded"
         else:
             overall_status = "healthy"
-        
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
-        
+
         return {
             "status": overall_status,
             "providers": provider_statuses,
             "healthy_providers": healthy_count,
             "total_providers": total_count,
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        
+
     except Exception as e:
         duration_ms = round((time.time() - start_time) * 1000, 2)
         logger.error(f"LLM providers health check failed: {str(e)}")
@@ -340,35 +341,30 @@ async def check_llm_providers_health() -> Dict[str, Any]:
             "status": "unhealthy",
             "error": str(e),
             "response_time_ms": duration_ms,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 
-async def check_llm_provider_health(llm_factory: LLMFactory, provider: str) -> Dict[str, Any]:
+async def check_llm_provider_health(
+    llm_factory: LLMFactory, provider: str
+) -> Dict[str, Any]:
     """Check health of a specific LLM provider."""
     start_time = time.time()
-    
+
     try:
         # Try to get a client for the provider
         client = await llm_factory.get_client(provider)
-        
+
         # Perform a minimal health check (implementation depends on provider)
         await client.health_check()
-        
+
         duration_ms = round((time.time() - start_time) * 1000, 2)
-        
-        return {
-            "status": "healthy",
-            "response_time_ms": duration_ms
-        }
-        
+
+        return {"status": "healthy", "response_time_ms": duration_ms}
+
     except Exception as e:
         duration_ms = round((time.time() - start_time) * 1000, 2)
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "response_time_ms": duration_ms
-        }
+        return {"status": "unhealthy", "error": str(e), "response_time_ms": duration_ms}
 
 
 @router.get("/health/dependencies", tags=["health"])
@@ -376,42 +372,42 @@ async def check_llm_provider_health(llm_factory: LLMFactory, provider: str) -> D
 async def dependencies_health():
     """
     Detailed health check for all dependencies.
-    
+
     Returns:
         dict: Detailed status of each dependency
     """
     dependencies = {}
-    
+
     # Check all dependencies in parallel
     tasks = {
         "database": check_database_health_standalone(),
         "redis": check_redis_health(),
         "vector_db": check_vector_db_health(),
-        "llm_providers": check_llm_providers_health()
+        "llm_providers": check_llm_providers_health(),
     }
-    
+
     results = await asyncio.gather(*tasks.values(), return_exceptions=True)
-    
+
     for i, (dep_name, _) in enumerate(tasks.items()):
         if isinstance(results[i], Exception):
             dependencies[dep_name] = {
                 "status": "unhealthy",
                 "error": str(results[i]),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         else:
             dependencies[dep_name] = results[i]
-    
+
     return {
         "dependencies": dependencies,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
 async def check_database_health_standalone() -> Dict[str, Any]:
     """Standalone database health check without dependency injection."""
     from app.core.database import SessionLocal
-    
+
     db = SessionLocal()
     try:
         return await check_database_health(db)
