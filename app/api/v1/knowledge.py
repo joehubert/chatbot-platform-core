@@ -3,6 +3,7 @@ Knowledge Base API endpoints for document management and retrieval.
 Handles document upload, processing, and management operations.
 """
 
+import json
 import logging
 from typing import List, Optional
 from uuid import UUID
@@ -17,7 +18,9 @@ from app.models.user import User
 from app.schemas.knowledge import (
     DocumentUpload,
     DocumentResponse,
+    DocumentList,
     DocumentStatus,
+    ProcessingStatus,
     DocumentUpdate,
 )
 from app.services.document_processor import DocumentProcessor
@@ -38,97 +41,56 @@ document_processor = DocumentProcessor()
 async def upload_document(
     file: UploadFile = File(...),
     title: Optional[str] = Form(None),
-    category: Optional[str] = Form(None),
+    category: Optional[str] = Form("general"),
     expires_at: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    tags: Optional[str] = Form(None),  # JSON string of tags
+    metadata: Optional[str] = Form(None),  # JSON string
+    # ... rest of implementation
 ):
-    """
-    Upload and process a document for the knowledge base.
+    # Add file_size calculation
+    content = await file.read()
+    file_size = len(content)
 
-    Supports PDF, TXT, DOCX, and Markdown files.
-    Documents are automatically processed, chunked, and indexed.
-    """
-    try:
-        # Validate file type
-        allowed_types = settings.ALLOWED_FILE_TYPES.split(",")
-        file_extension = file.filename.split(".")[-1].lower() if file.filename else ""
+    # Parse tags and metadata from JSON strings
+    parsed_tags = json.loads(tags) if tags else []
+    parsed_metadata = json.loads(metadata) if metadata else {}
 
-        if file_extension not in allowed_types:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File type '{file_extension}' not supported. Allowed types: {', '.join(allowed_types)}",
-            )
-
-        # Validate file size
-        content = await file.read()
-        if len(content) > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File size exceeds maximum limit of {settings.MAX_FILE_SIZE_MB}MB",
-            )
-
-        # Reset file pointer
-        await file.seek(0)
-
-        # Create document record
-        document_data = DocumentUpload(
-            filename=file.filename,
-            content_type=file.content_type,
-            title=title or file.filename,
-            category=category,
-            expires_at=expires_at,
-        )
-
-        # Process document
-        result = await knowledge_service.upload_document(
-            file=file, document_data=document_data, db=db, user_id=current_user.id
-        )
-
-        logger.info(f"Document uploaded successfully: {result.id}")
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading document: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload document",
-        )
+    # Create proper DocumentUpload object
+    document_data = DocumentUpload(
+        filename=file.filename,
+        content_type=file.content_type,
+        file_size=file_size,
+        title=title or file.filename,
+        category=category,
+        tags=parsed_tags,
+        expires_at=expires_at,
+        metadata=parsed_metadata,
+    )
 
 
-@router.get("/documents", response_model=List[DocumentResponse])
+@router.get("/documents", response_model=DocumentList)
 async def list_documents(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 20,
     category: Optional[str] = None,
-    status_filter: Optional[DocumentStatus] = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    status_filter: Optional[List[ProcessingStatus]] = None,
+    # ... existing parameters
 ):
-    """
-    List uploaded documents with optional filtering.
+    # Return DocumentList with pagination
+    total_count = await knowledge_service.count_documents(...)
+    documents = await knowledge_service.list_documents(...)
 
-    Supports pagination and filtering by category and processing status.
-    """
-    try:
-        documents = await knowledge_service.list_documents(
-            db=db,
-            skip=skip,
-            limit=limit,
-            category=category,
-            status_filter=status_filter,
-        )
-
-        return documents
-
-    except Exception as e:
-        logger.error(f"Error listing documents: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve documents",
-        )
+    return DocumentList(
+        documents=documents,
+        total_count=total_count,
+        page=(skip // limit) + 1,
+        page_size=limit,
+        total_pages=(total_count + limit - 1) // limit,
+        filters_applied={
+            "category": category,
+            "status_filter": status_filter,
+        },
+    )
 
 
 @router.get("/documents/{document_id}", response_model=DocumentResponse)
@@ -388,4 +350,27 @@ async def cleanup_expired_documents(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to cleanup expired documents",
+        )
+
+
+@router.get("/documents/{document_id}/status", response_model=DocumentStatus)
+async def get_document_status(
+    document_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get the processing status of a specific document.
+    """
+    try:
+        status = await knowledge_service.get_document_status(
+            document_id=document_id, db=db
+        )
+        return status
+
+    except Exception as e:
+        logger.error(f"Error retrieving document status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve document status",
         )

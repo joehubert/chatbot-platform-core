@@ -139,6 +139,17 @@ class DocumentUpload(BaseModel):
         }
 
 
+class DocumentUpdate(BaseModel):
+    """Schema for document update operations"""
+
+    title: Optional[str] = Field(None, max_length=500)
+    description: Optional[str] = Field(None, max_length=2000)
+    category: Optional[DocumentCategory] = None
+    tags: Optional[List[str]] = None
+    expires_at: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
 class DocumentResponse(BaseModel):
     """Schema for document upload response"""
 
@@ -281,9 +292,7 @@ class DocumentSearch(BaseModel):
         None, description="Filter by categories"
     )
     tags: Optional[List[str]] = Field(None, description="Filter by tags")
-    status_filter: Optional[List[ProcessingStatus]] = Field(
-        None, description="Filter by status"
-    )
+    status_filter: Optional[List[ProcessingStatus]] = None
     date_from: Optional[datetime] = Field(
         None, description="Filter by upload date from"
     )

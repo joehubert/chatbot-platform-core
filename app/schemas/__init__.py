@@ -24,6 +24,10 @@ from .knowledge import (
     DocumentResponse,
     DocumentList,
     DocumentStatus,
+    DocumentUpdate,  # Add missing
+    DocumentSearch,  # Add missing
+    DocumentSearchResponse,  # Add missing
+    # ... other schemas
 )
 
 from .config import (
@@ -36,22 +40,19 @@ from .config import (
 __all__ = [
     # Auth schemas
     "AuthRequest",
-    "AuthVerification", 
+    "AuthVerification",
     "AuthResponse",
     "TokenResponse",
-    
     # Chat schemas
     "ChatMessage",
     "ChatResponse",
     "ChatContext",
     "ConversationHistory",
-    
     # Knowledge schemas
     "DocumentUpload",
     "DocumentResponse",
-    "DocumentList", 
+    "DocumentList",
     "DocumentStatus",
-    
     # Config schemas
     "SystemConfig",
     "ConfigUpdate",
