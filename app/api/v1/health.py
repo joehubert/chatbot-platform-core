@@ -9,7 +9,7 @@ TODO:
 from typing import Dict, List, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.core.redis import get_redis_client
 from app.services.vector_db import VectorDBService
 from app.services.llm_factory import LLMFactory
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 @router.get("/health", tags=["health"])
 @log_api_call(logger, "/health", "GET")
-async def health_check(db: Session = Depends(get_db)):
+async def health_check(db: Session = Depends(get_async_db)):
     """
     Comprehensive health check endpoint.
 
@@ -122,7 +122,7 @@ async def health_check(db: Session = Depends(get_db)):
 
 @router.get("/health/ready", tags=["health"])
 @log_api_call(logger, "/health/ready", "GET")
-async def readiness_check(db: Session = Depends(get_db)):
+async def readiness_check(db: Session = Depends(get_async_db)):
     """
     Readiness check endpoint for Kubernetes.
 

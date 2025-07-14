@@ -15,7 +15,7 @@ from app.core.config import get_settings
 from app.models.document import Document
 from app.models.user import User
 from app.schemas.knowledge import (
-    DocumentCreate,
+    DocumentUpload,
     DocumentResponse,
     DocumentStatus,
     DocumentUpdate,
@@ -45,59 +45,56 @@ async def upload_document(
 ):
     """
     Upload and process a document for the knowledge base.
-    
+
     Supports PDF, TXT, DOCX, and Markdown files.
     Documents are automatically processed, chunked, and indexed.
     """
     try:
         # Validate file type
-        allowed_types = settings.ALLOWED_FILE_TYPES.split(',')
-        file_extension = file.filename.split('.')[-1].lower() if file.filename else ""
-        
+        allowed_types = settings.ALLOWED_FILE_TYPES.split(",")
+        file_extension = file.filename.split(".")[-1].lower() if file.filename else ""
+
         if file_extension not in allowed_types:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File type '{file_extension}' not supported. Allowed types: {', '.join(allowed_types)}"
+                detail=f"File type '{file_extension}' not supported. Allowed types: {', '.join(allowed_types)}",
             )
-        
+
         # Validate file size
         content = await file.read()
         if len(content) > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File size exceeds maximum limit of {settings.MAX_FILE_SIZE_MB}MB"
+                detail=f"File size exceeds maximum limit of {settings.MAX_FILE_SIZE_MB}MB",
             )
-        
+
         # Reset file pointer
         await file.seek(0)
-        
+
         # Create document record
-        document_data = DocumentCreate(
+        document_data = DocumentUpload(
             filename=file.filename,
             content_type=file.content_type,
             title=title or file.filename,
             category=category,
             expires_at=expires_at,
         )
-        
+
         # Process document
         result = await knowledge_service.upload_document(
-            file=file,
-            document_data=document_data,
-            db=db,
-            user_id=current_user.id
+            file=file, document_data=document_data, db=db, user_id=current_user.id
         )
-        
+
         logger.info(f"Document uploaded successfully: {result.id}")
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error uploading document: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload document"
+            detail="Failed to upload document",
         )
 
 
@@ -112,7 +109,7 @@ async def list_documents(
 ):
     """
     List uploaded documents with optional filtering.
-    
+
     Supports pagination and filtering by category and processing status.
     """
     try:
@@ -121,16 +118,16 @@ async def list_documents(
             skip=skip,
             limit=limit,
             category=category,
-            status_filter=status_filter
+            status_filter=status_filter,
         )
-        
+
         return documents
-        
+
     except Exception as e:
         logger.error(f"Error listing documents: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve documents"
+            detail="Failed to retrieve documents",
         )
 
 
@@ -144,26 +141,22 @@ async def get_document(
     Get details of a specific document.
     """
     try:
-        document = await knowledge_service.get_document(
-            document_id=document_id,
-            db=db
-        )
-        
+        document = await knowledge_service.get_document(document_id=document_id, db=db)
+
         if not document:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Document not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
-        
+
         return document
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error retrieving document {document_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve document"
+            detail="Failed to retrieve document",
         )
 
 
@@ -176,32 +169,29 @@ async def update_document(
 ):
     """
     Update document metadata.
-    
+
     Allows updating title, category, and expiration date.
     """
     try:
         document = await knowledge_service.update_document(
-            document_id=document_id,
-            document_update=document_update,
-            db=db
+            document_id=document_id, document_update=document_update, db=db
         )
-        
+
         if not document:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Document not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
-        
+
         logger.info(f"Document updated successfully: {document_id}")
         return document
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error updating document {document_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update document"
+            detail="Failed to update document",
         )
 
 
@@ -213,38 +203,31 @@ async def delete_document(
 ):
     """
     Delete a document and remove from vector database.
-    
+
     This operation cannot be undone.
     """
     try:
         # Get document first to check if it exists
-        document = await knowledge_service.get_document(
-            document_id=document_id,
-            db=db
-        )
-        
+        document = await knowledge_service.get_document(document_id=document_id, db=db)
+
         if not document:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Document not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
-        
+
         # Delete document and associated vectors
-        await knowledge_service.delete_document(
-            document_id=document_id,
-            db=db
-        )
-        
+        await knowledge_service.delete_document(document_id=document_id, db=db)
+
         logger.info(f"Document deleted successfully: {document_id}")
         return {"message": "Document deleted successfully"}
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error deleting document {document_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete document"
+            detail="Failed to delete document",
         )
 
 
@@ -256,40 +239,32 @@ async def reprocess_document(
 ):
     """
     Reprocess a document to update its embeddings.
-    
+
     Useful when changing embedding models or processing settings.
     """
     try:
-        document = await knowledge_service.get_document(
-            document_id=document_id,
-            db=db
-        )
-        
+        document = await knowledge_service.get_document(document_id=document_id, db=db)
+
         if not document:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Document not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
             )
-        
+
         # Trigger reprocessing
         result = await knowledge_service.reprocess_document(
-            document_id=document_id,
-            db=db
+            document_id=document_id, db=db
         )
-        
+
         logger.info(f"Document reprocessing initiated: {document_id}")
-        return {
-            "message": "Document reprocessing initiated",
-            "status": result.status
-        }
-        
+        return {"message": "Document reprocessing initiated", "status": result.status}
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error reprocessing document {document_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to reprocess document"
+            detail="Failed to reprocess document",
         )
 
 
@@ -304,37 +279,32 @@ async def search_knowledge_base(
 ):
     """
     Search the knowledge base using semantic similarity.
-    
+
     Returns relevant document chunks with similarity scores.
     """
     try:
         if not query.strip():
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Query cannot be empty"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Query cannot be empty"
             )
-        
+
         results = await knowledge_service.search_knowledge_base(
             query=query,
             limit=limit,
             similarity_threshold=similarity_threshold,
             category=category,
-            db=db
+            db=db,
         )
-        
-        return {
-            "query": query,
-            "results": results,
-            "total_results": len(results)
-        }
-        
+
+        return {"query": query, "results": results, "total_results": len(results)}
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error searching knowledge base: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to search knowledge base"
+            detail="Failed to search knowledge base",
         )
 
 
@@ -345,19 +315,19 @@ async def get_knowledge_base_stats(
 ):
     """
     Get statistics about the knowledge base.
-    
+
     Returns document counts, processing status, and storage information.
     """
     try:
         stats = await knowledge_service.get_knowledge_base_stats(db=db)
-        
+
         return stats
-        
+
     except Exception as e:
         logger.error(f"Error retrieving knowledge base stats: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve statistics"
+            detail="Failed to retrieve statistics",
         )
 
 
@@ -368,7 +338,7 @@ async def rebuild_vector_index(
 ):
     """
     Rebuild the entire vector database index.
-    
+
     This is a maintenance operation that reprocesses all documents.
     Use with caution as it may take considerable time.
     """
@@ -376,19 +346,19 @@ async def rebuild_vector_index(
         # This is a potentially long-running operation
         # In production, this should be handled as a background task
         result = await knowledge_service.rebuild_vector_index(db=db)
-        
+
         logger.info("Vector index rebuild initiated")
         return {
             "message": "Vector index rebuild initiated",
             "job_id": result.get("job_id"),
-            "estimated_time": result.get("estimated_time")
+            "estimated_time": result.get("estimated_time"),
         }
-        
+
     except Exception as e:
         logger.error(f"Error rebuilding vector index: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to rebuild vector index"
+            detail="Failed to rebuild vector index",
         )
 
 
@@ -399,23 +369,23 @@ async def cleanup_expired_documents(
 ):
     """
     Remove expired documents from the knowledge base.
-    
+
     This is a maintenance operation that cleans up documents
     that have passed their expiration date.
     """
     try:
         result = await knowledge_service.cleanup_expired_documents(db=db)
-        
+
         logger.info(f"Cleanup completed: {result['deleted_count']} documents removed")
         return {
             "message": "Expired documents cleanup completed",
             "deleted_count": result["deleted_count"],
-            "freed_space": result.get("freed_space", "Unknown")
+            "freed_space": result.get("freed_space", "Unknown"),
         }
-        
+
     except Exception as e:
         logger.error(f"Error during cleanup: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to cleanup expired documents"
+            detail="Failed to cleanup expired documents",
         )
