@@ -580,13 +580,13 @@ def record_api_metrics(
         )
 
 
-def record_llm_metrics(
+def record_model_metrics(
     provider: str, model: str, tokens_used: int, duration_ms: float, success: bool
 ):
-    """Record LLM-specific metrics."""
+    """Record model-specific metrics."""
     # Token usage
     metrics_collector.record_histogram(
-        "llm_tokens_used",
+        "model_tokens_used",
         tokens_used,
         labels={"provider": provider, "model": model},
         unit="tokens",
@@ -594,7 +594,7 @@ def record_llm_metrics(
 
     # Response time
     metrics_collector.record_histogram(
-        "llm_response_time",
+        "model_response_time",
         duration_ms,
         labels={"provider": provider, "model": model},
         unit="ms",
@@ -603,11 +603,11 @@ def record_llm_metrics(
     # Success/error counts
     if success:
         metrics_collector.increment_counter(
-            "llm_requests_success", labels={"provider": provider, "model": model}
+            "model_requests_success", labels={"provider": provider, "model": model}
         )
     else:
         metrics_collector.increment_counter(
-            "llm_requests_error", labels={"provider": provider, "model": model}
+            "model_requests_error", labels={"provider": provider, "model": model}
         )
 
 
@@ -642,6 +642,6 @@ __all__ = [
     "monitor_performance",
     "get_metrics_summary",
     "record_api_metrics",
-    "record_llm_metrics",
+    "record_model_metrics",
     "record_database_metrics",
 ]

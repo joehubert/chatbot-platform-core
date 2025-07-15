@@ -12,9 +12,9 @@ from sqlalchemy.orm import Session
 from app.core.database import get_async_db
 from app.core.redis import get_redis_client
 from app.services.vector_db import VectorDBService
-from app.services.llm_factory import LLMFactory
+from app.services.model_factory import ModelFactory
 from app.utils.logging import get_logger, log_api_call
-from app.utils.exceptions import DatabaseError, CacheError, VectorDBError, LLMError
+from app.utils.exceptions import DatabaseError, CacheError, VectorDBError, ModelError
 import asyncio
 import time
 from datetime import datetime, timezone
@@ -89,15 +89,15 @@ async def health_check(db: Session = Depends(get_async_db)):
         }
         overall_healthy = False
 
-    # Check LLM Providers
+    # Check Model Providers
     try:
-        llm_status = await check_llm_providers_health()
-        health_status["checks"]["llm_providers"] = llm_status
-        # LLM providers are not critical for basic health
+        model_status = await check_model_providers_health()
+        health_status["checks"]["model_providers"] = model_status
+        # Model providers are not critical for basic health
         # overall_healthy remains true even if some providers are down
     except Exception as e:
-        logger.error(f"LLM providers health check failed: {str(e)}")
-        health_status["checks"]["llm_providers"] = {
+        logger.error(f"Model providers health check failed: {str(e)}")
+        health_status["checks"]["model_providers"] = {
             "status": "degraded",
             "error": str(e),
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -282,12 +282,12 @@ async def check_vector_db_health() -> Dict[str, Any]:
         }
 
 
-async def check_llm_providers_health() -> Dict[str, Any]:
-    """Check LLM provider connectivity and availability."""
+async def check_model_providers_health() -> Dict[str, Any]:
+    """Check model provider connectivity and availability."""
     start_time = time.time()
 
     try:
-        llm_factory = LLMFactory()
+        model_factory = ModelFactory()
         provider_statuses = {}
 
         # Get configured providers
@@ -296,7 +296,7 @@ async def check_llm_providers_health() -> Dict[str, Any]:
         # Check each provider asynchronously
         tasks = []
         for provider in providers:
-            task = check_llm_provider_health(llm_factory, provider)
+            task = check_model_provider_health(model_factory, provider)
             tasks.append(task)
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -336,7 +336,7 @@ async def check_llm_providers_health() -> Dict[str, Any]:
 
     except Exception as e:
         duration_ms = round((time.time() - start_time) * 1000, 2)
-        logger.error(f"LLM providers health check failed: {str(e)}")
+        logger.error(f"Model providers health check failed: {str(e)}")
         return {
             "status": "unhealthy",
             "error": str(e),
@@ -345,15 +345,15 @@ async def check_llm_providers_health() -> Dict[str, Any]:
         }
 
 
-async def check_llm_provider_health(
-    llm_factory: LLMFactory, provider: str
+async def check_model_provider_health(
+    model_factory: ModelFactory, provider: str
 ) -> Dict[str, Any]:
-    """Check health of a specific LLM provider."""
+    """Check health of a specific model provider."""
     start_time = time.time()
 
     try:
         # Try to get a client for the provider
-        client = await llm_factory.get_client(provider)
+        client = await model_factory.get_client(provider)
 
         # Perform a minimal health check (implementation depends on provider)
         await client.health_check()
@@ -383,7 +383,7 @@ async def dependencies_health():
         "database": check_database_health_standalone(),
         "redis": check_redis_health(),
         "vector_db": check_vector_db_health(),
-        "llm_providers": check_llm_providers_health(),
+        "model_providers": check_model_providers_health(),
     }
 
     results = await asyncio.gather(*tasks.values(), return_exceptions=True)

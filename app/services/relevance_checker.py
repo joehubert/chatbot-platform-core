@@ -10,7 +10,7 @@ import os
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
-from app.services.llm_factory import LLMFactory
+from app.services.model_factory import ModelFactory
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class RelevanceChecker:
     
     def __init__(self):
         self.settings = get_settings()
-        self.llm_factory = LLMFactory()
+        self.model_factory = ModelFactory()
         self.relevance_model = self.settings.RELEVANCE_MODEL
         self.confidence_threshold = self.settings.RELEVANCE_CONFIDENCE_THRESHOLD
         self.organization_context = self._load_organization_context()
@@ -68,12 +68,12 @@ class RelevanceChecker:
             user_prompt = self._build_relevance_user_prompt(
                 query, context, conversation_history
             )
-            
-            # Get LLM client
-            llm_client = self.llm_factory.get_client(self.relevance_model)
-            
+
+            # Get model client
+            model_client = self.model_factory.get_client(self.relevance_model)
+
             # Generate relevance assessment
-            response = await llm_client.generate_response(
+            response = await model_client.generate_response(
                 query=user_prompt,
                 context={"system_prompt": system_prompt},
                 max_tokens=200,
@@ -119,12 +119,12 @@ class RelevanceChecker:
             user_prompt = self._build_clarification_user_prompt(
                 query, context, attempt_number
             )
-            
-            # Get LLM client
-            llm_client = self.llm_factory.get_client(self.relevance_model)
-            
+
+            # Get model client
+            model_client = self.model_factory.get_client(self.relevance_model)
+
             # Generate clarification
-            response = await llm_client.generate_response(
+            response = await model_client.generate_response(
                 query=user_prompt,
                 context={"system_prompt": system_prompt},
                 max_tokens=150,
@@ -156,12 +156,11 @@ class RelevanceChecker:
             # Build the out-of-scope response prompt
             system_prompt = self._build_out_of_scope_system_prompt()
             user_prompt = self._build_out_of_scope_user_prompt(query, context)
-            
-            # Get LLM client
-            llm_client = self.llm_factory.get_client(self.relevance_model)
-            
+            # Get model client
+            model_client = self.model_factory.get_client(self.relevance_model)
+
             # Generate out-of-scope response
-            response = await llm_client.generate_response(
+            response = await model_client.generate_response(
                 query=user_prompt,
                 context={"system_prompt": system_prompt},
                 max_tokens=200,
@@ -318,7 +317,7 @@ Generate a helpful out-of-scope response."""
         return prompt
     
     def _parse_relevance_response(self, response: str) -> Dict[str, Any]:
-        """Parse the LLM response for relevance checking."""
+        """Parse the Model response for relevance checking."""
         try:
             import json
             # Try to parse as JSON first

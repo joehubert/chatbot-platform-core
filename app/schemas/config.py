@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field, field_validator
 from enum import Enum
 
 
-class LLMProvider(str, Enum):
-    """Supported LLM providers"""
+class ModelProvider(str, Enum):
+    """Supported model providers"""
 
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -43,7 +43,7 @@ class CacheStrategy(str, Enum):
 class ModelConfig(BaseModel):
     """Configuration for individual LLM models"""
 
-    provider: LLMProvider = Field(..., description="LLM provider")
+    provider: ModelProvider = Field(..., description="Model provider")
     model_name: str = Field(..., description="Model identifier")
     role: ModelRole = Field(..., description="Model role in the system")
     api_endpoint: Optional[str] = Field(None, description="Custom API endpoint")
@@ -98,7 +98,6 @@ class ModelConfig(BaseModel):
             }
         }
 
-
 class RateLimitConfig(BaseModel):
     """Rate limiting configuration"""
 
@@ -136,6 +135,42 @@ class RateLimitConfig(BaseModel):
         }
 
 
+class ModelProviderConfig(BaseModel):
+    """Configuration for model providers"""
+
+    provider: ModelProvider = Field(..., description="Provider name")
+    api_key_name: str = Field(..., description="Environment variable for API key")
+    base_url: Optional[str] = Field(None, description="Custom base URL")
+    organization: Optional[str] = Field(None, description="Organization ID")
+    models: Dict[str, ModelConfig] = Field(
+        default_factory=dict, description="Available models for this provider"
+    )
+    rate_limits: Optional[Dict[str, int]] = Field(
+        None, description="Provider-specific rate limits"
+    )
+    enabled: bool = Field(default=True, description="Whether provider is enabled")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "provider": "openai",
+                "api_key_name": "OPENAI_API_KEY",
+                "base_url": "https://api.openai.com/v1",
+                "organization": "org-123",
+                "models": {
+                    "gpt-3.5": {
+                        "provider": "openai",
+                        "model_name": "gpt-3.5-turbo",
+                        "role": "simple_query"
+                    }
+                },
+                "rate_limits": {
+                    "requests_per_minute": 60
+                },
+                "enabled": True
+            }
+        }
+
 class CacheConfig(BaseModel):
     """Semantic cache configuration"""
 
@@ -167,7 +202,6 @@ class CacheConfig(BaseModel):
                 "cleanup_interval_hours": 6,
             }
         }
-
 
 class AuthConfig(BaseModel):
     """Authentication configuration"""
@@ -202,7 +236,6 @@ class AuthConfig(BaseModel):
                 "email_provider": "sendgrid",
             }
         }
-
 
 class VectorDBConfig(BaseModel):
     """Vector database configuration"""
@@ -292,6 +325,67 @@ class DocumentConfig(BaseModel):
             }
         }
 
+
+
+
+class ConfigUpdate(BaseModel):
+    """Schema for partial configuration updates"""
+
+    models: Optional[Dict[str, ModelConfig]] = Field(
+        None, description="Model configurations to update"
+    )
+    rate_limiting: Optional[RateLimitConfig] = Field(
+        None, description="Rate limiting settings"
+    )
+    cache: Optional[CacheConfig] = Field(None, description="Cache settings")
+    auth: Optional[AuthConfig] = Field(None, description="Authentication settings")
+    vector_db: Optional[VectorDBConfig] = Field(
+        None, description="Vector database settings"
+    )
+    documents: Optional[DocumentConfig] = Field(
+        None, description="Document processing settings"
+    )
+    fallback_error_message: Optional[str] = Field(
+        None, description="Fallback error message"
+    )
+    debug_mode: Optional[bool] = Field(None, description="Enable debug logging")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "rate_limiting": {
+                    "per_user_per_minute": 100,
+                    "global_per_minute": 2000,
+                },
+                "cache": {"similarity_threshold": 0.9},
+                "debug_mode": True,
+            }
+        }
+
+
+class ConfigValidationResult(BaseModel):
+    """Schema for configuration validation results"""
+
+    valid: bool = Field(..., description="Whether configuration is valid")
+    errors: List[str] = Field(
+        default_factory=list, description="Validation error messages"
+    )
+    warnings: List[str] = Field(default_factory=list, description="Validation warnings")
+    missing_env_vars: List[str] = Field(
+        default_factory=list, description="Missing environment variables"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "valid": False,
+                "errors": [
+                    "Model 'gpt-4' requires OPENAI_API_KEY environment variable"
+                ],
+                "warnings": ["Cache TTL is very low (1 hour)"],
+                "missing_env_vars": ["OPENAI_API_KEY", "PINECONE_API_KEY"],
+            }
+        }
 
 class SystemConfig(BaseModel):
     """Complete system configuration"""
@@ -383,64 +477,61 @@ class SystemConfig(BaseModel):
         }
 
 
-class ConfigUpdate(BaseModel):
-    """Schema for partial configuration updates"""
-
-    models: Optional[Dict[str, ModelConfig]] = Field(
-        None, description="Model configurations to update"
+class ConfigResponse(BaseModel):
+    """Response schema for configuration endpoints"""
+    
+    config: SystemConfig = Field(..., description="Current system configuration")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Configuration metadata"
     )
-    rate_limiting: Optional[RateLimitConfig] = Field(
-        None, description="Rate limiting settings"
+    last_updated: Optional[datetime] = Field(
+        None, description="Last configuration update timestamp"
     )
-    cache: Optional[CacheConfig] = Field(None, description="Cache settings")
-    auth: Optional[AuthConfig] = Field(None, description="Authentication settings")
-    vector_db: Optional[VectorDBConfig] = Field(
-        None, description="Vector database settings"
+    version: str = Field(default="1.0.0", description="Configuration version")
+    validation_status: Optional[ConfigValidationResult] = Field(
+        None, description="Configuration validation results"
     )
-    documents: Optional[DocumentConfig] = Field(
-        None, description="Document processing settings"
-    )
-    fallback_error_message: Optional[str] = Field(
-        None, description="Fallback error message"
-    )
-    debug_mode: Optional[bool] = Field(None, description="Enable debug logging")
-
+    
     class Config:
         schema_extra = {
             "example": {
-                "rate_limiting": {
-                    "per_user_per_minute": 100,
-                    "global_per_minute": 2000,
+                "config": {
+                    "models": {
+                        "gpt-3.5-simple": {
+                            "provider": "openai",
+                            "model_name": "gpt-3.5-turbo",
+                            "role": "simple_query"
+                        }
+                    },
+                    "rate_limiting": {
+                        "enabled": True,
+                        "per_user_per_minute": 60
+                    },
+                    "cache": {
+                        "enabled": True,
+                        "similarity_threshold": 0.85
+                    }
                 },
-                "cache": {"similarity_threshold": 0.9},
-                "debug_mode": True,
+                "metadata": {
+                    "total_models": 3,
+                    "active_providers": ["openai", "anthropic"]
+                },
+                "last_updated": "2024-01-15T10:30:00Z",
+                "version": "1.0.0",
+                "validation_status": {
+                    "valid": True,
+                    "errors": [],
+                    "warnings": []
+                }
             }
         }
 
 
-class ConfigValidationResult(BaseModel):
-    """Schema for configuration validation results"""
 
-    valid: bool = Field(..., description="Whether configuration is valid")
-    errors: List[str] = Field(
-        default_factory=list, description="Validation error messages"
-    )
-    warnings: List[str] = Field(default_factory=list, description="Validation warnings")
-    missing_env_vars: List[str] = Field(
-        default_factory=list, description="Missing environment variables"
-    )
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "valid": False,
-                "errors": [
-                    "Model 'gpt-4' requires OPENAI_API_KEY environment variable"
-                ],
-                "warnings": ["Cache TTL is very low (1 hour)"],
-                "missing_env_vars": ["OPENAI_API_KEY", "PINECONE_API_KEY"],
-            }
-        }
+
+
+
 
 
 class HealthStatus(BaseModel):
@@ -527,3 +618,25 @@ class MetricsData(BaseModel):
                 },
             }
         }
+
+# Add these to the __all__ export list at the end of the file
+__all__ = [
+    # Existing exports...
+    "ModelProvider",
+    "ModelRole", 
+    "CacheStrategy",
+    "ModelConfig",
+    "RateLimitConfig",
+    "CacheConfig",
+    "AuthConfig",
+    "VectorDBConfig",
+    "DocumentConfig",
+    "SystemConfig",
+    "ConfigUpdate",
+    "ConfigValidationResult",
+    "HealthStatus",
+    # New exports
+    "ModelConfig",
+    "ModelProviderConfig", 
+    "ConfigResponse"
+]

@@ -25,11 +25,11 @@ class ErrorCode(Enum):
     OTP_REQUIRED = "OTP_REQUIRED"
     OTP_INVALID = "OTP_INVALID"
     OTP_EXPIRED = "OTP_EXPIRED"
-    
-    # LLM and processing errors
-    LLM_UNAVAILABLE = "LLM_UNAVAILABLE"
-    LLM_RATE_LIMITED = "LLM_RATE_LIMITED"
-    LLM_QUOTA_EXCEEDED = "LLM_QUOTA_EXCEEDED"
+
+    # Model and processing errors
+    MODEL_UNAVAILABLE = "MODEL_UNAVAILABLE"
+    MODEL_RATE_LIMITED = "MODEL_RATE_LIMITED"
+    MODEL_QUOTA_EXCEEDED = "MODEL_QUOTA_EXCEEDED"
     MODEL_NOT_FOUND = "MODEL_NOT_FOUND"
     PROCESSING_FAILED = "PROCESSING_FAILED"
     QUERY_TOO_LONG = "QUERY_TOO_LONG"
@@ -177,11 +177,11 @@ class AuthenticationError(ChatbotException):
         )
 
 
-class LLMError(ChatbotException):
-    """Exception for LLM-related errors."""
+class ModelError(ChatbotException):
+    """Exception for model-related errors."""
     
     def __init__(self, message: str, error_code: ErrorCode, details: Optional[Dict[str, Any]] = None):
-        status_code = 503 if error_code == ErrorCode.LLM_UNAVAILABLE else 500
+        status_code = 503 if error_code == ErrorCode.MODEL_UNAVAILABLE else 500
         super().__init__(
             message=message,
             error_code=error_code,
@@ -318,11 +318,11 @@ def rate_limit_error(limit: int, window: str = "minute") -> RateLimitError:
     return RateLimitError(message, details)
 
 
-def llm_unavailable_error(provider: str, model: str) -> LLMError:
-    """Create an LLM unavailable error."""
-    message = f"LLM service unavailable: {provider}/{model}"
+def model_unavailable_error(provider: str, model: str) -> ModelError:
+    """Create a model unavailable error."""
+    message = f"Model service unavailable: {provider}/{model}"
     details = {'provider': provider, 'model': model}
-    return LLMError(message, ErrorCode.LLM_UNAVAILABLE, details)
+    return ModelError(message, ErrorCode.MODEL_UNAVAILABLE, details)
 
 
 def document_processing_error(filename: str, error: str) -> KnowledgeBaseError:

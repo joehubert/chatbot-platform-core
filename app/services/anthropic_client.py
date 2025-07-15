@@ -14,7 +14,7 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
-from .llm_factory import BaseLLMClient, LLMResponse
+from .model_factory import BaseLLMClient, LLMResponse
 
 logger = logging.getLogger(__name__)
 

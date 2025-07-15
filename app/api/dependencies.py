@@ -5,6 +5,16 @@ This module provides common dependencies used across API endpoints including
 database sessions, authentication, rate limiting, and other shared functionality.
 """
 
+from app.core.config import get_settings
+from app.services.cache import SemanticCacheService
+from app.services.cache import ConversationCacheService
+from app.services.model_factory import ModelFactory
+from app.services.model_router import ModelRouter
+from app.services.rate_limiting import RateLimitService
+from app.services.vector_db import create_vector_db_service, VectorDBService
+from app.services.knowledge_base import create_knowledge_base_service, KnowledgeBaseService
+from app.services.document_processor import DocumentProcessor
+
 from typing import Optional, Annotated
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -357,3 +367,133 @@ def get_client_info(request: Request) -> dict:
         "real_ip": request.headers.get("x-real-ip", ""),
         "request_time": datetime.now().isoformat(),
     }
+
+async def get_semantic_cache_service() -> SemanticCacheService:
+    """Dependency injection for semantic cache service"""
+    settings = get_settings()
+    
+    # Create cache service with proper configuration
+    cache_service = SemanticCacheService(
+        redis_url=settings.REDIS_URL,
+        ttl_hours=settings.CACHE_TTL_HOURS,
+        similarity_threshold=settings.CACHE_SIMILARITY_THRESHOLD
+    )
+    
+    # Initialize if not already done
+    if not cache_service._initialized:
+        await cache_service.initialize()
+    
+    return cache_service
+
+
+async def get_vector_db_service() -> VectorDBService:
+    """Dependency injection for vector database service"""
+    settings = get_settings()
+    
+    # Use the factory function with proper configuration
+    vector_service = create_vector_db_service(
+        db_type=settings.VECTOR_DB_TYPE,
+        connection_params={
+            "api_key": settings.VECTOR_DB_API_KEY,
+            "environment": settings.VECTOR_DB_ENVIRONMENT,
+            "host": settings.VECTOR_DB_HOST,
+            "port": settings.VECTOR_DB_PORT,
+        },
+        index_name=settings.VECTOR_DB_INDEX_NAME,
+        dimension=settings.EMBEDDING_DIMENSION,
+        similarity_metric=settings.VECTOR_SIMILARITY_METRIC
+    )
+    
+    # Initialize if not already done
+    if not vector_service._initialized:
+        await vector_service.initialize()
+    
+    return vector_service
+
+
+async def get_document_processor() -> DocumentProcessor:
+    """Dependency injection for document processor"""
+    settings = get_settings()
+    
+    # Create document processor with configuration
+    doc_processor = DocumentProcessor(
+        max_file_size_mb=settings.MAX_FILE_SIZE_MB,
+        chunk_size=settings.CHUNK_SIZE,
+        chunk_overlap=settings.CHUNK_OVERLAP,
+        allowed_file_types=settings.ALLOWED_FILE_TYPES
+    )
+    
+    # Initialize if not already done
+    if not doc_processor._initialized:
+        await doc_processor.initialize()
+    
+    return doc_processor
+
+
+async def get_knowledge_base_service() -> KnowledgeBaseService:
+    """Dependency injection for knowledge base service"""
+    # Get the required dependencies
+    vector_service = await get_vector_db_service()
+    doc_processor = await get_document_processor()
+    
+    # Use the factory function
+    knowledge_service = create_knowledge_base_service(
+        vector_db_service=vector_service,
+        document_processor=doc_processor,
+        default_expiration_days=365
+    )
+    
+    # Initialize if not already done
+    if not knowledge_service._initialized:
+        await knowledge_service.initialize()
+    
+    return knowledge_service
+
+
+async def get_model_factory() -> ModelFactory:
+    """Dependency injection for model factory"""
+    settings = get_settings()
+
+    # Create model factory with configuration
+    model_factory = ModelFactory(
+        default_provider=settings.DEFAULT_LLM_PROVIDER,
+        model_configs=settings.MODEL_CONFIGS
+    )
+    
+    # Initialize if not already done
+    if not model_factory._initialized:
+        await model_factory.initialize()
+
+    return model_factory
+
+
+async def get_model_router() -> ModelRouter:
+    """Dependency injection for model router"""
+    model_factory = await get_model_factory()
+
+    # Create model router with model factory
+    model_router = ModelRouter(llm_factory=model_factory)
+
+    # Initialize if not already done
+    if not model_router._initialized:
+        await model_router.initialize()
+    
+    return model_router
+
+
+async def get_rate_limit_service() -> RateLimitService:
+    """Dependency injection for rate limiting service"""
+    settings = get_settings()
+    
+    # Create rate limiting service with configuration
+    rate_limit_service = RateLimitService(
+        redis_url=settings.REDIS_URL,
+        per_user_per_minute=settings.RATE_LIMIT_PER_USER_PER_MINUTE,
+        global_per_minute=settings.RATE_LIMIT_GLOBAL_PER_MINUTE
+    )
+    
+    # Initialize if not already done
+    if not rate_limit_service._initialized:
+        await rate_limit_service.initialize()
+    
+    return rate_limit_service

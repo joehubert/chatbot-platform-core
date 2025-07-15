@@ -26,15 +26,32 @@ from app.schemas.knowledge import (
 from app.services.document_processor import DocumentProcessor
 from app.services.knowledge_base import KnowledgeBaseService
 from app.services.vector_db import VectorDBService
+from app.services.vector_db import create_vector_db_service
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 settings = get_settings()
 
 # Initialize services
-knowledge_service = KnowledgeBaseService()
-vector_service = VectorDBService()
+# TODO: see related todo in depencencies.py for vector DB service
+vector_service = create_vector_db_service(
+    db_type="chroma",  # or "pinecone", "weaviate", "qdrant"
+    connection_params={
+        "host": "localhost",
+        "port": 8000,
+        # other connection parameters
+    },
+    index_name="your_index_name",
+    dimension=1536,
+    similarity_metric="cosine"
+)
 document_processor = DocumentProcessor()
+knowledge_service = KnowledgeBaseService(
+    vector_db_service=vector_service,
+    document_processor=document_processor
+)
+
 
 
 @router.post("/documents", response_model=DocumentResponse)

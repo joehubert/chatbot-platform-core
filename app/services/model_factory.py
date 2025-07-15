@@ -1,7 +1,7 @@
 """
-LLM Factory Service
+Model Factory Service
 
-Factory pattern implementation for creating and managing different LLM clients.
+Factory pattern implementation for creating and managing different model clients.
 Supports multiple providers with unified interface and fallback mechanisms.
 """
 
@@ -13,8 +13,8 @@ from abc import ABC, abstractmethod
 logger = logging.getLogger(__name__)
 
 
-class LLMProvider(Enum):
-    """Supported LLM providers"""
+class ModelProvider(Enum):
+    """Supported model providers"""
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     HUGGINGFACE = "huggingface"
@@ -22,8 +22,8 @@ class LLMProvider(Enum):
     AZURE_OPENAI = "azure_openai"
 
 
-class LLMResponse:
-    """Unified response format for all LLM providers"""
+class ModelResponse:
+    """Unified response format for all mmodel providers"""
     
     def __init__(
         self,
@@ -40,8 +40,8 @@ class LLMResponse:
         self.metadata = metadata or {}
 
 
-class BaseLLMClient(ABC):
-    """Abstract base class for LLM clients"""
+class BaseModelClient(ABC):
+    """Abstract base class for model clients"""
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -53,8 +53,8 @@ class BaseLLMClient(ABC):
         self,
         messages: List[Dict[str, str]],
         **kwargs
-    ) -> Optional[LLMResponse]:
-        """Generate a response from the LLM"""
+    ) -> Optional[ModelResponse]:
+        """Generate a response from the model"""
         pass
     
     @abstractmethod
@@ -63,12 +63,12 @@ class BaseLLMClient(ABC):
         messages: List[Dict[str, str]],
         **kwargs
     ) -> AsyncGenerator[str, None]:
-        """Generate a streaming response from the LLM"""
+        """Generate a streaming response from the model"""
         pass
     
     @abstractmethod
     async def health_check(self) -> bool:
-        """Check if the LLM service is healthy"""
+        """Check if the model service is healthy"""
         pass
     
     def format_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -76,20 +76,20 @@ class BaseLLMClient(ABC):
         return messages
 
 
-class LLMFactory:
-    """Factory for creating and managing LLM clients"""
+class ModelFactory:
+    """Factory for creating and managing model clients"""
     
     def __init__(self):
         self._clients = {}
         self._provider_configs = {}
     
-    def register_provider_config(self, provider: LLMProvider, config: Dict[str, Any]):
+    def register_provider_config(self, provider: ModelProvider, config: Dict[str, Any]):
         """Register configuration for a provider"""
         self._provider_configs[provider] = config
         logger.info(f"Registered configuration for provider: {provider.value}")
-    
-    def create_client(self, provider: LLMProvider, model: str, **kwargs) -> Optional[BaseLLMClient]:
-        """Create an LLM client for the specified provider and model"""
+
+    def create_client(self, provider: ModelProvider, model: str, **kwargs) -> Optional[BaseModelClient]:
+        """Create a model client for the specified provider and model"""
         client_key = f"{provider.value}_{model}"
         
         if client_key in self._clients:
@@ -108,19 +108,19 @@ class LLMFactory:
             }
             
             # Create client based on provider
-            if provider == LLMProvider.OPENAI:
+            if provider == ModelProvider.OPENAI:
                 from .openai_client import OpenAIClient
                 client = OpenAIClient(config)
-            elif provider == LLMProvider.ANTHROPIC:
+            elif provider == ModelProvider.ANTHROPIC:
                 from .anthropic_client import AnthropicClient
                 client = AnthropicClient(config)
-            elif provider == LLMProvider.HUGGINGFACE:
+            elif provider == ModelProvider.HUGGINGFACE:
                 from .huggingface_client import HuggingFaceClient
                 client = HuggingFaceClient(config)
-            elif provider == LLMProvider.OLLAMA:
+            elif provider == ModelProvider.OLLAMA:
                 from .ollama_client import OllamaClient
                 client = OllamaClient(config)
-            elif provider == LLMProvider.AZURE_OPENAI:
+            elif provider == ModelProvider.AZURE_OPENAI:
                 from .azure_openai_client import AzureOpenAIClient
                 client = AzureOpenAIClient(config)
             else:
@@ -128,15 +128,15 @@ class LLMFactory:
                 return None
             
             self._clients[client_key] = client
-            logger.info(f"Created LLM client: {client_key}")
+            logger.info(f"Created model client: {client_key}")
             return client
             
         except Exception as e:
-            logger.error(f"Failed to create LLM client for {provider.value}/{model}: {e}")
+            logger.error(f"Failed to create model client for {provider.value}/{model}: {e}")
             return None
-    
-    def get_client(self, provider: LLMProvider, model: str) -> Optional[BaseLLMClient]:
-        """Get an existing LLM client"""
+
+    def get_client(self, provider: ModelProvider, model: str) -> Optional[BaseModelClient]:
+        """Get an existing model client"""
         client_key = f"{provider.value}_{model}"
         return self._clients.get(client_key)
     
@@ -156,25 +156,25 @@ class LLMFactory:
     def list_clients(self) -> List[str]:
         """List all registered clients"""
         return list(self._clients.keys())
-    
-    def remove_client(self, provider: LLMProvider, model: str):
+
+    def remove_client(self, provider: ModelProvider, model: str):
         """Remove a client from the factory"""
         client_key = f"{provider.value}_{model}"
         if client_key in self._clients:
             del self._clients[client_key]
-            logger.info(f"Removed LLM client: {client_key}")
+            logger.info(f"Removed model client: {client_key}")
 
 
-class LLMService:
-    """High-level service for LLM operations with fallback support"""
-    
-    def __init__(self, factory: LLMFactory):
+class ModelService:
+    """High-level service for model operations with fallback support"""
+
+    def __init__(self, factory: ModelFactory):
         self.factory = factory
         self.fallback_chains = {}
     
     def configure_fallback_chain(
         self, 
-        primary_provider: LLMProvider, 
+        primary_provider: ModelProvider, 
         primary_model: str,
         fallbacks: List[tuple]  # List of (provider, model) tuples
     ):
@@ -186,11 +186,11 @@ class LLMService:
     async def generate_response(
         self,
         messages: List[Dict[str, str]],
-        provider: LLMProvider,
+        provider: ModelProvider,
         model: str,
         use_fallback: bool = True,
         **kwargs
-    ) -> Optional[LLMResponse]:
+    ) -> Optional[ModelResponse]:
         """Generate response with optional fallback support"""
         
         # Try primary model
@@ -213,7 +213,7 @@ class LLMService:
             
             for fallback_provider_str, fallback_model in fallbacks:
                 try:
-                    fallback_provider = LLMProvider(fallback_provider_str)
+                    fallback_provider = ModelProvider(fallback_provider_str)
                     logger.info(f"Trying fallback: {fallback_provider.value}/{fallback_model}")
                     
                     fallback_client = self.factory.get_client(fallback_provider, fallback_model)
@@ -236,7 +236,7 @@ class LLMService:
     async def generate_streaming_response(
         self,
         messages: List[Dict[str, str]],
-        provider: LLMProvider,
+        provider: ModelProvider,
         model: str,
         **kwargs
     ) -> AsyncGenerator[str, None]:
@@ -256,8 +256,8 @@ class LLMService:
         
         # If streaming fails, yield error message
         yield f"Error: Streaming not available for {provider.value}/{model}"
-    
-    async def health_check(self, provider: LLMProvider, model: str) -> bool:
+
+    async def health_check(self, provider: ModelProvider, model: str) -> bool:
         """Health check for specific model"""
         client = self.factory.get_client(provider, model)
         if not client:
@@ -274,7 +274,7 @@ class LLMService:
         return await self.factory.health_check_all()
 
 
-# Utility functions for common LLM operations
+# Utility functions for common model operations
 def format_system_message(content: str) -> Dict[str, str]:
     """Format a system message"""
     return {"role": "system", "content": content}
@@ -311,49 +311,49 @@ def build_conversation(
 
 
 # Global factory instance
-_global_factory = LLMFactory()
-_global_service = LLMService(_global_factory)
+_global_factory = ModelFactory()
+_global_service = ModelService(_global_factory)
 
 
-def get_llm_factory() -> LLMFactory:
-    """Get the global LLM factory instance"""
+def get_model_factory() -> ModelFactory:
+    """Get the global model factory instance"""
     return _global_factory
 
 
-def get_llm_service() -> LLMService:
-    """Get the global LLM service instance"""
+def get_model_service() -> ModelService:
+    """Get the global model service instance"""
     return _global_service
 
 
-def initialize_llm_providers(config: Dict[str, Any]):
-    """Initialize LLM providers from configuration"""
-    factory = get_llm_factory()
-    
+def initialize_model_providers(config: Dict[str, Any]):
+    """Initialize model providers from configuration"""
+    factory = get_model_factory()
+
     # Register provider configurations
     if "openai" in config:
-        factory.register_provider_config(LLMProvider.OPENAI, config["openai"])
-    
+        factory.register_provider_config(ModelProvider.OPENAI, config["openai"])
+
     if "anthropic" in config:
-        factory.register_provider_config(LLMProvider.ANTHROPIC, config["anthropic"])
-    
+        factory.register_provider_config(ModelProvider.ANTHROPIC, config["anthropic"])
+
     if "huggingface" in config:
-        factory.register_provider_config(LLMProvider.HUGGINGFACE, config["huggingface"])
-    
+        factory.register_provider_config(ModelProvider.HUGGINGFACE, config["huggingface"])
+
     if "ollama" in config:
-        factory.register_provider_config(LLMProvider.OLLAMA, config["ollama"])
-    
+        factory.register_provider_config(ModelProvider.OLLAMA, config["ollama"])
+
     if "azure_openai" in config:
-        factory.register_provider_config(LLMProvider.AZURE_OPENAI, config["azure_openai"])
+        factory.register_provider_config(ModelProvider.AZURE_OPENAI, config["azure_openai"])
     
     # Configure fallback chains if specified
-    service = get_llm_service()
+    service = get_model_service()
     fallback_config = config.get("fallback_chains", {})
     
     for chain_config in fallback_config:
-        primary_provider = LLMProvider(chain_config["primary_provider"])
+        primary_provider = ModelProvider(chain_config["primary_provider"])
         primary_model = chain_config["primary_model"]
         fallbacks = [(fb["provider"], fb["model"]) for fb in chain_config["fallbacks"]]
         
         service.configure_fallback_chain(primary_provider, primary_model, fallbacks)
     
-    logger.info("LLM providers initialized successfully")
+    logger.info("Model providers initialized successfully")

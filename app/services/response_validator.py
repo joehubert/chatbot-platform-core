@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
-from app.services.llm_factory import LLMFactory
+from app.services.model_factory import ModelFactory
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class ResponseValidator:
     
     def __init__(self):
         self.settings = get_settings()
-        self.llm_factory = LLMFactory()
+        self.model_factory = ModelFactory()
         self.validation_model = self.settings.VALIDATION_MODEL
         self.organization_context = self._load_organization_context()
         self.safety_filters = self._load_safety_filters()
@@ -213,19 +213,19 @@ class ResponseValidator:
         original_query: str,
         context: Optional[Dict[str, Any]]
     ) -> List[ValidationIssue]:
-        """Check response quality using LLM-based assessment."""
+        """Check response quality using model-based assessment."""
         issues = []
         
         try:
             # Build quality assessment prompt
             system_prompt = self._build_quality_system_prompt()
             user_prompt = self._build_quality_user_prompt(response, original_query, context)
-            
-            # Get LLM client
-            llm_client = self.llm_factory.get_client(self.validation_model)
-            
+
+            # Get model client
+            model_client = self.model_factory.get_client(self.validation_model)
+
             # Generate quality assessment
-            assessment = await llm_client.generate_response(
+            assessment = await model_client.generate_response(
                 query=user_prompt,
                 context={"system_prompt": system_prompt},
                 max_tokens=300,
@@ -446,7 +446,7 @@ Respond in JSON format:
         return prompt
     
     def _parse_quality_assessment(self, assessment: str) -> Dict[str, float]:
-        """Parse quality assessment from LLM response."""
+        """Parse quality assessment from model response."""
         try:
             import json
             if assessment.strip().startswith('{'):

@@ -11,7 +11,7 @@ import logging
 import re
 from dataclasses import dataclass
 
-from .llm_factory import LLMProvider, LLMService, LLMResponse
+from .model_factory import ModelProvider, ModelService, ModelResponse
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class RoutingRule:
     """Routing rule for model selection"""
     complexity: QueryComplexity
     query_type: QueryType
-    provider: LLMProvider
+    provider: ModelProvider
     model: str
     priority: int = 1
     conditions: Optional[Dict[str, Any]] = None
@@ -239,15 +239,15 @@ class QueryAnalyzer:
 
 class ModelRouter:
     """Routes queries to appropriate models based on analysis and rules"""
-    
-    def __init__(self, llm_service: LLMService):
-        self.llm_service = llm_service
+
+    def __init__(self, model_service: ModelService):
+        self.model_service = model_service
         self.analyzer = QueryAnalyzer()
         self.routing_rules: List[RoutingRule] = []
         self.default_models = {
-            QueryComplexity.SIMPLE: (LLMProvider.OPENAI, "gpt-3.5-turbo"),
-            QueryComplexity.MEDIUM: (LLMProvider.OPENAI, "gpt-4"),
-            QueryComplexity.COMPLEX: (LLMProvider.OPENAI, "gpt-4")
+            QueryComplexity.SIMPLE: (ModelProvider.OPENAI, "gpt-3.5-turbo"),
+            QueryComplexity.MEDIUM: (ModelProvider.OPENAI, "gpt-4"),
+            QueryComplexity.COMPLEX: (ModelProvider.OPENAI, "gpt-4")
         }
     
     def add_routing_rule(self, rule: RoutingRule):
@@ -260,7 +260,7 @@ class ModelRouter:
     def set_default_model(
         self, 
         complexity: QueryComplexity, 
-        provider: LLMProvider, 
+        provider: ModelProvider, 
         model: str
     ):
         """Set default model for a complexity level"""
@@ -271,7 +271,7 @@ class ModelRouter:
         self,
         query: str,
         context: Optional[Dict[str, Any]] = None
-    ) -> Tuple[LLMProvider, str, QueryAnalysis]:
+    ) -> Tuple[ModelProvider, str, QueryAnalysis]:
         """Route a query to the appropriate model"""
         
         # Analyze the query
@@ -295,7 +295,7 @@ class ModelRouter:
         self, 
         analysis: QueryAnalysis, 
         context: Optional[Dict[str, Any]]
-    ) -> Tuple[Optional[LLMProvider], Optional[str]]:
+    ) -> Tuple[Optional[ModelProvider], Optional[str]]:
         """Find the first matching routing rule"""
         
         for rule in self.routing_rules:
@@ -342,7 +342,7 @@ class ModelRouter:
         conversation_history: Optional[List[Dict[str, str]]] = None,
         context: Optional[Dict[str, Any]] = None,
         **kwargs
-    ) -> Tuple[Optional[LLMResponse], QueryAnalysis]:
+    ) -> Tuple[Optional[ModelResponse], QueryAnalysis]:
         """Generate response using routed model"""
         
         # Route the query
@@ -355,7 +355,7 @@ class ModelRouter:
         messages.append({"role": "user", "content": query})
         
         # Generate response
-        response = await self.llm_service.generate_response(
+        response = await self.model_service.generate_response(
             messages=messages,
             provider=provider,
             model=model,
@@ -392,7 +392,7 @@ def create_default_routing_rules() -> List[RoutingRule]:
         RoutingRule(
             complexity=QueryComplexity.SIMPLE,
             query_type=QueryType.FACTUAL,
-            provider=LLMProvider.OPENAI,
+            provider=ModelProvider.OPENAI,
             model="gpt-3.5-turbo",
             priority=10
         ),
@@ -401,7 +401,7 @@ def create_default_routing_rules() -> List[RoutingRule]:
         RoutingRule(
             complexity=QueryComplexity.MEDIUM,
             query_type=QueryType.TECHNICAL,
-            provider=LLMProvider.OPENAI,
+            provider=ModelProvider.OPENAI,
             model="gpt-4",
             priority=20,
             conditions={"has_code": True}
@@ -411,7 +411,7 @@ def create_default_routing_rules() -> List[RoutingRule]:
         RoutingRule(
             complexity=QueryComplexity.COMPLEX,
             query_type=QueryType.ANALYTICAL,
-            provider=LLMProvider.OPENAI,
+            provider=ModelProvider.OPENAI,
             model="gpt-4",
             priority=30
         ),
@@ -420,7 +420,7 @@ def create_default_routing_rules() -> List[RoutingRule]:
         RoutingRule(
             complexity=QueryComplexity.MEDIUM,
             query_type=QueryType.CREATIVE,
-            provider=LLMProvider.OPENAI,
+            provider=ModelProvider.OPENAI,
             model="gpt-4",
             priority=15
         ),
@@ -429,7 +429,7 @@ def create_default_routing_rules() -> List[RoutingRule]:
         RoutingRule(
             complexity=QueryComplexity.MEDIUM,
             query_type=QueryType.ANALYTICAL,
-            provider=LLMProvider.OPENAI,
+            provider=ModelProvider.OPENAI,
             model="gpt-4",
             priority=25,
             conditions={"has_math": True}
@@ -439,10 +439,10 @@ def create_default_routing_rules() -> List[RoutingRule]:
     return rules
 
 
-def setup_default_router(llm_service: LLMService) -> ModelRouter:
+def setup_default_router(model_service: ModelService) -> ModelRouter:
     """Set up a model router with default configuration"""
-    router = ModelRouter(llm_service)
-    
+    router = ModelRouter(model_service)
+
     # Add default routing rules
     for rule in create_default_routing_rules():
         router.add_routing_rule(rule)

@@ -325,7 +325,7 @@ class QuestionProcessingNode:
                         logger.error(f"MCP tool execution error: {str(e)}")
             
             # Generate response using selected model
-            from app.services.llm_factory import LLMFactory
+            from app.services.model_factory import LLMFactory
             llm_factory = LLMFactory()
             llm_client = llm_factory.get_client(state.selected_model)
             

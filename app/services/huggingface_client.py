@@ -14,7 +14,7 @@ from typing import Dict, Any, Optional, AsyncGenerator
 import aiohttp
 from transformers import AutoTokenizer
 
-from .llm_factory import BaseLLMClient, LLMRequest, LLMResponse
+from .model_factory import BaseLLMClient, LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 
