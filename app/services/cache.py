@@ -110,8 +110,9 @@ class SemanticCacheService:
         # Configuration from settings
         self.similarity_threshold = settings.CACHE_SIMILARITY_THRESHOLD
         self.default_ttl_hours = settings.CACHE_TTL_HOURS
-        self.max_embedding_dimension = settings.CACHE_MAX_EMBEDDING_DIMENSION
-        self.enable_compression = settings.CACHE_ENABLE_COMPRESSION
+        #TODO: figure out how to handle these settings
+        #self.max_embedding_dimension = settings.CACHE_MAX_EMBEDDING_DIMENSION
+        #self.enable_compression = settings.CACHE_ENABLE_COMPRESSION
         
         # Cache key prefixes
         self.key_prefixes = {

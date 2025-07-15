@@ -18,6 +18,7 @@ from app.api.dependencies import (
     get_model_router,
     get_rate_limit_service,
     get_vector_db_service,
+    create_vector_db_service,
 )
 from app.core.config import get_settings
 from app.models.user import User
@@ -49,7 +50,7 @@ settings = get_settings()
 semantic_cache_service = SemanticCacheService()
 conversation_cache_service = ConversationCacheService()
 model_factory = ModelFactory()
-model_router = ModelRouter()
+#model_router = ModelRouter()
 rate_limit_service = RateLimitService()
 vector_service = create_vector_db_service(
     db_type="chroma",  # or "pinecone", "weaviate", "qdrant"
@@ -87,8 +88,7 @@ async def upload_document(
 @router.get("/", response_model=ConfigResponse)
 async def get_system_config(
     current_user: User = Depends(get_current_user),
-    # FIXED: Inject services as dependencies
-    cache_service = Depends(get_cache_service),
+    cache_service = Depends(get_semantic_cache_service),
     model_router = Depends(get_model_router),
     vector_service = Depends(get_vector_db_service),
 ):
@@ -156,9 +156,9 @@ async def get_system_config(
 @router.put("/", response_model=ConfigResponse)
 async def update_system_config(
     config_update: ConfigUpdate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
     # FIXED: Inject services as dependencies
-    cache_service = Depends(get_cache_service),
+    cache_service = Depends(get_semantic_cache_service),
     model_router = Depends(get_model_router),
     rate_limit_service = Depends(get_rate_limit_service),
 ):
@@ -256,7 +256,7 @@ async def get_model_routing_rules(
 @router.put("/models/routing")
 async def update_model_routing_rules(
     routing_rules: List[Dict[str, Any]],
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Update model routing rules.
@@ -285,7 +285,7 @@ async def test_model_connection(
     provider: str,
     model_name: str,
     test_message: Optional[str] = "Hello, this is a test message.",
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Test connection to a specific model provider.
@@ -339,7 +339,7 @@ async def get_cache_statistics(
 @router.post("/cache/clear")
 async def clear_cache(
     cache_type: Optional[str] = None,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Clear cache data.
@@ -368,7 +368,7 @@ async def clear_cache(
 @router.post("/validate", response_model=ConfigValidationResult)
 async def validate_configuration(
     config_update: ConfigUpdate,
-    current_user: User = Depends(get_current_admin_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Validate a configuration update without applying it.
@@ -391,7 +391,7 @@ async def validate_configuration(
 async def get_system_health(
     current_user: User = Depends(get_current_user),
     # FIXED: Inject services as dependencies
-    cache_service = Depends(get_cache_service),
+    cache_service = Depends(get_semantic_cache_service),
     vector_service = Depends(get_vector_db_service),
 ):
     """

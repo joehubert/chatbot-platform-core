@@ -471,8 +471,8 @@ async def get_model_router() -> ModelRouter:
     """Dependency injection for model router"""
     model_factory = await get_model_factory()
 
-    # Create model router with model factory
-    model_router = ModelRouter(llm_factory=model_factory)
+    # Create model router with model factory (fix parameter name)
+    model_router = ModelRouter(model_service=model_factory)  # Changed from llm_factory to model_service
 
     # Initialize if not already done
     if not model_router._initialized:

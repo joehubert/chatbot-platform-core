@@ -88,13 +88,20 @@ class Settings(BaseSettings):
     )
 
     # Rate Limiting Configuration
-    RATE_LIMIT_PER_USER_PER_MINUTE: int = Field(
-        default=60, env="RATE_LIMIT_PER_USER_PER_MINUTE"
-    )
-    RATE_LIMIT_GLOBAL_PER_MINUTE: int = Field(
-        default=1000, env="RATE_LIMIT_GLOBAL_PER_MINUTE"
-    )
-    RATE_LIMIT_BURST_CAPACITY: int = Field(default=10, env="RATE_LIMIT_BURST_CAPACITY")
+    # Core requirements from reqs.md
+    RATE_LIMIT_PER_USER_PER_MINUTE: int = Field(default=60, env="RATE_LIMIT_PER_USER_PER_MINUTE")
+    RATE_LIMIT_GLOBAL_PER_MINUTE: int = Field(default=1000, env="RATE_LIMIT_GLOBAL_PER_MINUTE")
+
+    # Burst capacity for each type (allows short bursts above the per-minute rate)
+    RATE_LIMIT_USER_BURST_CAPACITY: int = Field(default=10, env="RATE_LIMIT_USER_BURST_CAPACITY")
+    RATE_LIMIT_GLOBAL_BURST_CAPACITY: int = Field(default=50, env="RATE_LIMIT_GLOBAL_BURST_CAPACITY")
+
+    # Optional: Additional rate limiting dimensions for more granular control
+    RATE_LIMIT_PER_IP_PER_MINUTE: int = Field(default=120, env="RATE_LIMIT_PER_IP_PER_MINUTE")
+    RATE_LIMIT_IP_BURST_CAPACITY: int = Field(default=20, env="RATE_LIMIT_IP_BURST_CAPACITY")
+
+    RATE_LIMIT_PER_SESSION_PER_MINUTE: int = Field(default=30, env="RATE_LIMIT_PER_SESSION_PER_MINUTE")
+    RATE_LIMIT_SESSION_BURST_CAPACITY: int = Field(default=5, env="RATE_LIMIT_SESSION_BURST_CAPACITY")
 
     # Cache Configuration
     CACHE_SIMILARITY_THRESHOLD: float = Field(
@@ -102,6 +109,7 @@ class Settings(BaseSettings):
     )
     CACHE_TTL_HOURS: int = Field(default=24, env="CACHE_TTL_HOURS")
     CACHE_MAX_ENTRIES: int = Field(default=10000, env="CACHE_MAX_ENTRIES")
+
 
     # Authentication Configuration
     AUTH_SESSION_TIMEOUT_MINUTES: int = Field(
