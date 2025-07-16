@@ -360,7 +360,7 @@ def setup_routes(app: FastAPI) -> None:
         
         return metrics_data
     
-    # API routes will be added in future implementations
+    # API routes
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
 

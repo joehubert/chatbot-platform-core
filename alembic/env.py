@@ -60,9 +60,12 @@ def get_database_url() -> str:
 
     # Fall back to config file
     database_url = config.get_main_option("sqlalchemy.url")
-    logger.info("Using DATABASE_URL from alembic.ini config file")
-
-    return database_url
+    if database_url:
+        logger.info("Using DATABASE_URL from alembic.ini config file")
+        return database_url
+    
+    # If neither source provides a URL, raise an error
+    raise ValueError("DATABASE_URL must be set either as environment variable or in alembic.ini")
 
 
 def include_name(name, type_, parent_names):
@@ -139,6 +142,7 @@ def run_migrations_offline() -> None:
         include_name=include_name,
         compare_type=compare_type,
         render_as_batch=True,  # Enable batch mode for SQLite compatibility
+        process_revision_directives=process_revision_directives,
     )
 
     with context.begin_transaction():
@@ -180,6 +184,7 @@ def run_migrations_online() -> None:
             render_item=render_item,
             # Transaction per migration for better error handling
             transaction_per_migration=True,
+            process_revision_directives=process_revision_directives,
         )
 
         with context.begin_transaction():
@@ -240,10 +245,7 @@ def process_revision_directives(context, revision, directives):
             )
 
 
-# Set up custom revision directive processing
-context.configure(process_revision_directives=process_revision_directives)
-
-
+# Main execution logic
 if context.is_offline_mode():
     logger.info("Running migrations in offline mode")
     run_migrations_offline()

@@ -104,7 +104,7 @@ curl -X GET http://localhost:3000/api/v1/health | jq '.components.redis'
 **Direct Redis Testing**:
 ```bash
 # Connect to Redis container
-docker exec -it chatbot-redis redis-cli
+docker exec -it chatbot-platform-redis redis-cli
 
 # Simple ping test
 PING

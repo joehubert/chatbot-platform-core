@@ -1,5 +1,7 @@
 # Complete API Route Paths for Chatbot Platform
 
+Base path: http://localhost:3000/api/v1
+
 Based on the project files and API structure, here are all the route paths supported by the chatbot platform API:
 
 ## Root Application Routes

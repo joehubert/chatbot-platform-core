@@ -590,3 +590,5 @@ async def validate_config_update(config_update: ConfigUpdate) -> ConfigValidatio
         warnings=warnings,
         missing_env_vars=missing_env_vars
     )
+
+__all__ = ["router"]

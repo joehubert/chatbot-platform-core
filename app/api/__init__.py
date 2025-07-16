@@ -7,12 +7,12 @@ It follows the FastAPI framework conventions and provides versioned API endpoint
 
 from fastapi import APIRouter
 
-from app.api.v1 import chat, auth
+# Import the complete v1 router instead of individual routers
+from app.api.v1 import router as v1_router
 
 api_router = APIRouter()
 
-# Include v1 API routes
-api_router.include_router(chat.router, prefix="/v1/chat", tags=["chat"])
-api_router.include_router(auth.router, prefix="/v1/auth", tags=["authentication"])
+# Include the complete v1 API router with all endpoints
+api_router.include_router(v1_router)
 
 __all__ = ["api_router"]
