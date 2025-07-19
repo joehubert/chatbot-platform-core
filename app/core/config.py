@@ -10,6 +10,8 @@ import secrets
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic.networks import AnyHttpUrl
+from app.services.model_factory import ModelProvider
+
 
 
 class Settings(BaseSettings):
@@ -56,6 +58,7 @@ class Settings(BaseSettings):
     )
 
     # LLM Provider Configuration
+    DEFAULT_MODEL_PROVIDER: ModelProvider = Field(default=ModelProvider.OPENAI, env="DEFAULT_MODEL_PROVIDER")
     OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
     HUGGINGFACE_API_KEY: Optional[str] = Field(default=None, env="HUGGINGFACE_API_KEY")

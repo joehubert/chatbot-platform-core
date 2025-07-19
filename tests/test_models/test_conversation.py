@@ -67,7 +67,7 @@ class TestConversationModel:
             conversation_id=sample_conversation.id,
             content="How can I help you?",
             role="assistant",
-            model_used="gpt-3.5-turbo",
+            llm_model_used="gpt-3.5-turbo",
             cached=False,
             processing_time_ms=1500
         )
@@ -301,7 +301,7 @@ class TestMessageModel:
         assert message.cached is False
         assert message.processing_time_ms == 250
         assert message.timestamp is not None
-        assert message.model_used is None
+        assert message.llm_model_used is None
 
     @pytest.mark.asyncio
     async def test_create_assistant_message(
@@ -315,7 +315,7 @@ class TestMessageModel:
             conversation_id=sample_conversation.id,
             content="Assistant response",
             role="assistant",
-            model_used="gpt-4",
+            llm_model_used="gpt-4",
             cached=False,
             processing_time_ms=1800
         )
@@ -325,7 +325,7 @@ class TestMessageModel:
         await db_session.refresh(message)
         
         assert message.role == "assistant"
-        assert message.model_used == "gpt-4"
+        assert message.llm_model_used == "gpt-4"
         assert message.content == "Assistant response"
         assert message.processing_time_ms == 1800
 
@@ -341,7 +341,7 @@ class TestMessageModel:
             conversation_id=sample_conversation.id,
             content="Cached response",
             role="assistant",
-            model_used="gpt-3.5-turbo",
+            llm_model_used="gpt-3.5-turbo",
             cached=True,
             processing_time_ms=50
         )
@@ -352,7 +352,7 @@ class TestMessageModel:
         
         assert message.cached is True
         assert message.processing_time_ms == 50
-        assert message.model_used == "gpt-3.5-turbo"
+        assert message.llm_model_used == "gpt-3.5-turbo"
 
     @pytest.mark.asyncio
     async def test_message_conversation_relationship(
@@ -483,7 +483,7 @@ class TestMessageModel:
                 conversation_id=sample_conversation.id,
                 content=f"Message {i}",
                 role="assistant",
-                model_used="gpt-3.5-turbo",
+                llm_model_used="gpt-3.5-turbo",
                 cached=False,
                 processing_time_ms=processing_time
             )
@@ -551,7 +551,7 @@ class TestMessageModel:
             conversation_id=sample_conversation.id,
             content="Assistant message",
             role="assistant",
-            model_used="gpt-3.5-turbo",
+            llm_model_used="gpt-3.5-turbo",
             cached=False,
             processing_time_ms=200
         )
@@ -603,7 +603,7 @@ class TestMessageModel:
             conversation_id=sample_conversation.id,
             content="Cached message",
             role="assistant",
-            model_used="gpt-3.5-turbo",
+            llm_model_used="gpt-3.5-turbo",
             cached=True,
             processing_time_ms=50
         )
@@ -613,7 +613,7 @@ class TestMessageModel:
             conversation_id=sample_conversation.id,
             content="Uncached message",
             role="assistant",
-            model_used="gpt-4",
+            llm_model_used="gpt-4",
             cached=False,
             processing_time_ms=1500
         )
@@ -742,7 +742,7 @@ class TestConversationMessageIntegration:
                 conversation_id=sample_conversation.id,
                 content=f"Message {i}",
                 role="assistant",
-                model_used="gpt-3.5-turbo",
+                llm_model_used="gpt-3.5-turbo",
                 cached=i % 2 == 0,  # Alternate cached/uncached
                 processing_time_ms=processing_time
             )

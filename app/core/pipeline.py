@@ -92,7 +92,7 @@ class PipelineState:
     # Metadata
     processing_start_time: datetime = field(default_factory=datetime.now)
     processing_time_ms: int = 0
-    model_used: str = ""
+    llm_model_used: str = ""
     tokens_used: int = 0
     cost_estimate: float = 0.0
 
@@ -315,7 +315,7 @@ class ChatbotPipeline:
                 "requires_auth": result.requires_auth,
                 "auth_methods": result.auth_methods,
                 "cached": result.cache_hit,
-                "model_used": result.model_used,
+                "llm_model_used": result.llm_model_used,
                 "processing_time_ms": result.processing_time_ms,
                 "is_resolved": result.is_resolved,
                 "rag_sources": result.rag_sources,
@@ -332,7 +332,7 @@ class ChatbotPipeline:
                 "requires_auth": False,
                 "auth_methods": [],
                 "cached": False,
-                "model_used": "",
+                "llm_model_used": "",
                 "processing_time_ms": 0,
                 "is_resolved": False,
                 "rag_sources": [],
@@ -393,7 +393,7 @@ class ChatbotPipeline:
                         "content": msg.content,
                         "role": msg.role,
                         "timestamp": msg.timestamp.isoformat(),
-                        "model_used": msg.model_used,
+                        "llm_model_used": msg.llm_model_used,
                         "cached": msg.cached,
                         "processing_time_ms": msg.processing_time_ms,
                     }

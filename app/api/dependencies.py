@@ -370,18 +370,13 @@ def get_client_info(request: Request) -> dict:
 
 async def get_semantic_cache_service() -> SemanticCacheService:
     """Dependency injection for semantic cache service"""
-    settings = get_settings()
+    from app.utils.redis_utils import RedisManager
     
-    # Create cache service with proper configuration
-    cache_service = SemanticCacheService(
-        redis_url=settings.REDIS_URL,
-        ttl_hours=settings.CACHE_TTL_HOURS,
-        similarity_threshold=settings.CACHE_SIMILARITY_THRESHOLD
-    )
+    # Create Redis manager (it will get settings internally)
+    redis_manager = RedisManager()
     
-    # Initialize if not already done
-    if not cache_service._initialized:
-        await cache_service.initialize()
+    # Create cache service with proper parameter
+    cache_service = SemanticCacheService(redis_manager=redis_manager)
     
     return cache_service
 
@@ -456,7 +451,7 @@ async def get_model_factory() -> ModelFactory:
 
     # Create model factory with configuration
     model_factory = ModelFactory(
-        default_provider=settings.DEFAULT_LLM_PROVIDER,
+        default_provider=settings.DEFAULT_MODEL_PROVIDER,
         model_configs=settings.MODEL_CONFIGS
     )
     
@@ -497,3 +492,19 @@ async def get_rate_limit_service() -> RateLimitService:
         await rate_limit_service.initialize()
     
     return rate_limit_service
+
+async def get_knowledge_base_service() -> KnowledgeBaseService:
+    """Dependency injection for knowledge base service"""
+    vector_service = await get_vector_db_service()
+    document_processor = DocumentProcessor()
+    return KnowledgeBaseService(
+        vector_db_service=vector_service,
+        document_processor=document_processor
+    )
+
+async def get_conversation_cache_service() -> ConversationCacheService:
+    """Dependency injection for conversation cache service"""
+    settings = get_settings()
+    return ConversationCacheService(
+        redis_url=settings.REDIS_URL
+    )

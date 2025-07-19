@@ -51,7 +51,7 @@ class PipelineState:
     # Metadata
     processing_start_time: datetime = field(default_factory=datetime.now)
     processing_time_ms: int = 0
-    model_used: str = ""
+    llm_model_used: str = ""
     tokens_used: int = 0
     cost_estimate: float = 0.0
     

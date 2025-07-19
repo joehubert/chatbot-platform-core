@@ -14,7 +14,7 @@ services:
     networks:
       - chatbot-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatbot_user} -d ${POSTGRES_DB:-chatbot_platform}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chatbot_user} -d ${POSTGRES_DB:-chatbot_platform}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,7 +31,7 @@ services:
     networks:
       - chatbot-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +64,7 @@ services:
       dockerfile: Dockerfile
     command: alembic upgrade head
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@postgres:5432/${POSTGRES_DB:-chatbot_platform}
+      ALEMBIC_DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@postgres:5432/${POSTGRES_DB:-chatbot_platform}
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,7 +80,7 @@ services:
     env_file:
       - .env
     environment:
-      # Override specific environment variables that need dynamic values from other containers
+      # Problem: default credentials are in a file committed to the repo
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@postgres:5432/${POSTGRES_DB:-chatbot_platform}
       REDIS_URL: redis://redis:6379/${REDIS_DB:-0}
       CHROMA_HOST: chroma
@@ -89,7 +89,7 @@ services:
       UPLOAD_PATH: /app/uploads
     volumes:
       - .:/app
-      - /app/.venv  # Exclude venv from volume mount
+      - /app/.venv # Exclude venv from volume mount
       - upload_data:/app/uploads
       - temp_data:/app/temp
       - log_data:/app/logs
@@ -105,7 +105,7 @@ services:
     networks:
       - chatbot-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${API_INTERNAL_PORT:-8000}/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:${API_INTERNAL_PORT:-8000}/health" ]
       interval: 30s
       timeout: 10s
       retries: 3

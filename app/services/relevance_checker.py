@@ -387,7 +387,7 @@ Generate a helpful out-of-scope response."""
         """Get statistics about relevance checking."""
         # In a real implementation, this would track metrics
         return {
-            "model_used": self.relevance_model,
+            "llm_model_used": self.relevance_model,
             "confidence_threshold": self.confidence_threshold,
             "organization_context": self.organization_context
         }

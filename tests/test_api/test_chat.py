@@ -38,7 +38,7 @@ class TestChatMessage:
             assert "conversation_id" in data
             assert data["requires_auth"] is False
             assert data["cached"] is False
-            assert data["model_used"] == "gpt-3.5-turbo"
+            assert data["llm_model_used"] == "gpt-3.5-turbo"
 
     def test_chat_message_with_cache_hit(
         self, 
@@ -52,7 +52,7 @@ class TestChatMessage:
         # Mock cache hit
         mock_redis.get.return_value = json.dumps({
             "response": "Cached response",
-            "model_used": "gpt-3.5-turbo",
+            "llm_model_used": "gpt-3.5-turbo",
             "cached": True
         })
         

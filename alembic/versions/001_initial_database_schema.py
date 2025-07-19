@@ -268,7 +268,7 @@ def upgrade() -> None:
             comment="When the message was created",
         ),
         sa.Column(
-            "model_used",
+            "llm_model_used",
             sa.String(length=100),
             nullable=True,
             comment="LLM model used to generate response (for assistant messages)",
@@ -322,7 +322,7 @@ def upgrade() -> None:
     op.create_index("idx_message_role", "messages", ["role"], unique=False)
     op.create_index("idx_message_timestamp", "messages", ["timestamp"], unique=False)
     op.create_index("idx_message_cached", "messages", ["cached"], unique=False)
-    op.create_index("idx_message_model_used", "messages", ["model_used"], unique=False)
+    op.create_index("idx_message_llm_model_used", "messages", ["llm_model_used"], unique=False)
     op.create_index(
         "idx_message_conversation_timestamp",
         "messages",
@@ -608,7 +608,7 @@ def downgrade() -> None:
     # Drop messages table and its indexes
     op.drop_index("idx_message_role_timestamp", table_name="messages")
     op.drop_index("idx_message_conversation_timestamp", table_name="messages")
-    op.drop_index("idx_message_model_used", table_name="messages")
+    op.drop_index("idx_message_llm_model_used", table_name="messages")
     op.drop_index("idx_message_cached", table_name="messages")
     op.drop_index("idx_message_timestamp", table_name="messages")
     op.drop_index("idx_message_role", table_name="messages")

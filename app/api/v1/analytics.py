@@ -30,9 +30,9 @@ router = APIRouter()
 
 @router.get("/conversations", response_model=ConversationAnalytics)
 async def get_conversation_analytics(
-    start_date: Optional[datetime] = Query(None, description="Start date for analytics (ISO format)"),
-    end_date: Optional[datetime] = Query(None, description="End date for analytics (ISO format)"),
-    groupby: str = Query("day", regex="^(hour|day|week|month)$", description="Time grouping"),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    groupby: str = Query("day", regex="^(hour|day|week|month)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -567,7 +567,7 @@ async def _get_model_usage_stats(
     
     # Query model usage
     model_stats = db.query(
-        Message.model_used,
+        Message.llm_model_used,
         func.count(Message.id).label('usage_count'),
         func.avg(Message.processing_time_ms).label('avg_response_time'),
         func.sum(Message.tokens_used).label('total_tokens')
@@ -576,14 +576,14 @@ async def _get_model_usage_stats(
             Message.timestamp >= start_date,
             Message.timestamp <= end_date,
             Message.role == 'assistant',
-            Message.model_used.isnot(None)
+            Message.llm_model_used.isnot(None)
         )
-    ).group_by(Message.model_used).all()
+    ).group_by(Message.llm_model_used).all()
     
     results = []
     for stat in model_stats:
         results.append(ModelUsageStats(
-            model_name=stat.model_used,
+            model_name=stat.llm_model_used,
             usage_count=stat.usage_count,
             average_response_time_ms=round(float(stat.avg_response_time or 0), 2),
             total_tokens=stat.total_tokens or 0,

@@ -86,7 +86,7 @@ class ChatResponse(BaseModel):
     cached: bool = Field(
         default=False, description="Whether response was served from cache"
     )
-    model_used: Optional[str] = Field(
+    llm_model_used: Optional[str] = Field(
         None, description="LLM model used for response generation"
     )
     processing_time_ms: Optional[int] = Field(
@@ -108,7 +108,7 @@ class ChatResponse(BaseModel):
                 "auth_methods": [],
                 "conversation_id": "conv_98765",
                 "cached": False,
-                "model_used": "gpt-3.5-turbo",
+                "llm_model_used": "gpt-3.5-turbo",
                 "processing_time_ms": 1250,
                 "sources": ["user_manual.pdf", "faq.md"],
                 "confidence_score": 0.85,
@@ -123,7 +123,7 @@ class MessageHistory(BaseModel):
     content: str = Field(..., description="Message content")
     role: str = Field(..., description="Message role: user, assistant, or system")
     timestamp: datetime = Field(..., description="Message timestamp")
-    model_used: Optional[str] = Field(
+    llm_model_used: Optional[str] = Field(
         None, description="Model used for assistant messages"
     )
     cached: bool = Field(default=False, description="Whether message was cached")
@@ -145,7 +145,7 @@ class MessageHistory(BaseModel):
                 "content": "Hello, I need help with my account",
                 "role": "user",
                 "timestamp": "2024-01-15T10:30:00Z",
-                "model_used": None,
+                "llm_model_used": None,
                 "cached": False,
                 "processing_time_ms": None,
             }

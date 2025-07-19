@@ -559,7 +559,7 @@ Respond in JSON format:
     def get_validation_stats(self) -> Dict[str, Any]:
         """Get statistics about response validation."""
         return {
-            "model_used": self.validation_model,
+            "llm_model_used": self.validation_model,
             "quality_thresholds": self.quality_thresholds,
             "safety_filters_count": {
                 filter_type: len(patterns)

@@ -97,7 +97,7 @@ def mock_llm_service():
     mock_service = Mock(spec=LLMService)
     mock_service.generate_response = AsyncMock(return_value={
         "response": "Test response",
-        "model_used": "gpt-3.5-turbo",
+        "llm_model_used": "gpt-3.5-turbo",
         "tokens_used": 100,
         "cost": 0.002
     })

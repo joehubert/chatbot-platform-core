@@ -11,7 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, get_db
+from app.api.dependencies import get_current_user, get_db, get_knowledge_base_service
 from app.core.config import get_settings
 from app.models.document import Document
 from app.models.user import User
@@ -60,11 +60,12 @@ async def upload_document(
     title: Optional[str] = Form(None),
     category: Optional[str] = Form("general"),
     expires_at: Optional[str] = Form(None),
-    tags: Optional[str] = Form(None),  # JSON string of tags
-    metadata: Optional[str] = Form(None),  # JSON string
-    # ... rest of implementation
-):
-    # Add file_size calculation
+    tags: Optional[str] = Form(None),
+    metadata: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    knowledge_service: KnowledgeBaseService = Depends(get_knowledge_base_service),
+):    # Add file_size calculation
     content = await file.read()
     file_size = len(content)
 

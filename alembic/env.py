@@ -46,26 +46,30 @@ target_metadata = Base.metadata
 
 def get_database_url() -> str:
     """
-    Get database URL from environment variable or config.
-
-    Returns:
-        Database URL string
+    Get database URL for Alembic migrations.
     """
-    # First try to get from environment variable
-    database_url = os.getenv("DATABASE_URL")
-
+    # 1. Try ALEMBIC_DATABASE_URL (sync driver)
+    database_url = os.getenv("ALEMBIC_DATABASE_URL")
     if database_url:
-        logger.info("Using DATABASE_URL from environment variable")
+        logger.info("Using ALEMBIC_DATABASE_URL from environment variable")
         return database_url
 
-    # Fall back to config file
+    # 2. Try DATABASE_URL (should be sync for Alembic, but warn if async)
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        if "asyncpg" in database_url:
+            logger.warning("DATABASE_URL uses asyncpg; Alembic requires a sync driver like psycopg2.")
+        else:
+            logger.info("Using DATABASE_URL from environment variable")
+        return database_url
+
+    # 3. Fallback to alembic.ini
     database_url = config.get_main_option("sqlalchemy.url")
     if database_url:
         logger.info("Using DATABASE_URL from alembic.ini config file")
         return database_url
-    
-    # If neither source provides a URL, raise an error
-    raise ValueError("DATABASE_URL must be set either as environment variable or in alembic.ini")
+
+    raise ValueError("A sync database URL must be set in ALEMBIC_DATABASE_URL, DATABASE_URL, or alembic.ini")
 
 
 def include_name(name, type_, parent_names):

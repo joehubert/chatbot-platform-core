@@ -134,7 +134,7 @@ class ConversationManager:
         conversation_id: UUID,
         content: str,
         role: str,
-        model_used: Optional[str] = None,
+        llm_model_used: Optional[str] = None,
         cached: bool = False,
         processing_time_ms: Optional[int] = None,
         metadata: Optional[Dict[str, Any]] = None,
@@ -146,7 +146,7 @@ class ConversationManager:
             conversation_id: Conversation ID
             content: Message content
             role: Message role (user, assistant, system)
-            model_used: LLM model used for response
+            llm_model_used: LLM model used for response
             cached: Whether response was cached
             processing_time_ms: Processing time in milliseconds
             metadata: Additional metadata
@@ -161,7 +161,7 @@ class ConversationManager:
                 content=content,
                 role=role,
                 timestamp=datetime.utcnow(),
-                model_used=model_used,
+                llm_model_used=llm_model_used,
                 cached=cached,
                 processing_time_ms=processing_time_ms or 0,
                 metadata=metadata or {},
@@ -545,7 +545,7 @@ class ConversationManager:
                     "content": message.content,
                     "role": message.role,
                     "timestamp": message.timestamp.isoformat(),
-                    "model_used": message.model_used,
+                    "llm_model_used": message.llm_model_used,
                     "cached": message.cached,
                     "processing_time_ms": message.processing_time_ms,
                 }

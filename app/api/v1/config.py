@@ -88,9 +88,9 @@ async def upload_document(
 @router.get("/", response_model=ConfigResponse)
 async def get_system_config(
     current_user: User = Depends(get_current_user),
-    cache_service = Depends(get_semantic_cache_service),
-    model_router = Depends(get_model_router),
-    vector_service = Depends(get_vector_db_service),
+    cache_service: SemanticCacheService = Depends(get_semantic_cache_service),
+    model_router: ModelRouter = Depends(get_model_router),
+    vector_service: VectorDBService = Depends(get_vector_db_service),
 ):
     """
     Retrieve current system configuration.

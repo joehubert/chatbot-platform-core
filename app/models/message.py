@@ -110,7 +110,7 @@ class Message(Base):
     )
 
     # Processing metadata
-    model_used: Mapped[Optional[str]] = Column(
+    llm_model_used: Mapped[Optional[str]] = Column(
         String(100),
         nullable=True,
         comment="LLM model used to generate response (for assistant messages)",
@@ -164,7 +164,7 @@ class Message(Base):
         Index("idx_message_role", "role"),
         Index("idx_message_timestamp", "timestamp"),
         Index("idx_message_cached", "cached"),
-        Index("idx_message_model_used", "model_used"),
+        Index("idx_message_llm_model_used", "llm_model_used"),
         Index("idx_message_conversation_timestamp", "conversation_id", "timestamp"),
         Index("idx_message_role_timestamp", "role", "timestamp"),
     )
@@ -239,7 +239,7 @@ class Message(Base):
             model_name: Name of the LLM model used
             tokens: Number of tokens consumed (optional)
         """
-        self.model_used = model_name
+        self.llm_model_used = model_name
         if tokens is not None:
             self.tokens_used = max(0, tokens)
 

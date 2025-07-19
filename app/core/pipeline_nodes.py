@@ -338,11 +338,11 @@ class QuestionProcessingNode:
             )
             
             state.response = response_result["response"]
-            state.model_used = response_result["model_used"]
+            state.llm_model_used = response_result["llm_model_used"]
             state.tokens_used = response_result["tokens_used"]
             state.cost_estimate = response_result["cost_estimate"]
             
-            logger.info(f"Question processed for session {state.session_id} using model {state.model_used}")
+            logger.info(f"Question processed for session {state.session_id} using model {state.llm_model_used}")
             
             return state
             
@@ -465,7 +465,7 @@ class ConversationRecordingNode:
                     content=state.message,
                     role="user",
                     timestamp=datetime.now(),
-                    model_used="",
+                    llm_model_used="",
                     cached=False,
                     processing_time_ms=0
                 )
@@ -478,7 +478,7 @@ class ConversationRecordingNode:
                     content=state.response,
                     role="assistant",
                     timestamp=datetime.now(),
-                    model_used=state.model_used,
+                    llm_model_used=state.llm_model_used,
                     cached=state.cache_hit,
                     processing_time_ms=state.processing_time_ms
                 )
@@ -511,7 +511,7 @@ class CacheUpdateNode:
                 context=state.context,
                 session_id=state.session_id,
                 metadata={
-                    "model_used": state.model_used,
+                    "llm_model_used": state.llm_model_used,
                     "tokens_used": state.tokens_used,
                     "cost_estimate": state.cost_estimate,
                     "rag_sources": state.rag_sources,
