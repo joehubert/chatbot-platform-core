@@ -11,8 +11,27 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic.networks import AnyHttpUrl
 from app.services.model_factory import ModelProvider
+from typing import Dict, Any, Optional
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
+from enum import Enum
+import json
 
+class ModelType(Enum):
+    """Supported model types for different use cases"""
+    RELEVANCE = "relevance"
+    SIMPLE_QUERY = "simple_query" 
+    COMPLEX_QUERY = "complex_query"
+    CLARIFICATION = "clarification"
+    EMBEDDING = "embedding"
 
+class ModelProvider(Enum):
+    """Supported model providers"""
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    HUGGINGFACE = "huggingface"
+    OLLAMA = "ollama"
+    AZURE_OPENAI = "azure_openai"
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
@@ -210,6 +229,86 @@ class Settings(BaseSettings):
     MCP_RETRY_DELAY: float = Field(default=1.0, env="MCP_RETRY_DELAY")
     MCP_HEALTH_CHECK_INTERVAL: int = Field(default=60, env="MCP_HEALTH_CHECK_INTERVAL")
     MCP_CONFIG_FILE: Optional[str] = Field(default=None, env="MCP_CONFIG_FILE")
+
+        # LLM Provider Configuration
+    DEFAULT_MODEL_PROVIDER: ModelProvider = Field(default=ModelProvider.OPENAI, env="DEFAULT_MODEL_PROVIDER")
+    
+    # API Keys for different providers
+    OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
+    ANTHROPIC_API_KEY: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
+    HUGGINGFACE_API_KEY: Optional[str] = Field(default=None, env="HUGGINGFACE_API_KEY")
+    OLLAMA_BASE_URL: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
+    AZURE_OPENAI_ENDPOINT: Optional[str] = Field(default=None, env="AZURE_OPENAI_ENDPOINT")
+    AZURE_OPENAI_API_KEY: Optional[str] = Field(default=None, env="AZURE_OPENAI_API_KEY")
+    
+    # Model Type Mappings - JSON string that gets parsed
+    MODEL_TYPE_CONFIGS: str = Field(
+        default='{}', 
+        env="MODEL_TYPE_CONFIGS",
+        description="JSON string mapping model types to provider/model combinations"
+    )
+    
+    @field_validator('MODEL_TYPE_CONFIGS')
+    @classmethod
+    def validate_model_configs(cls, v: str) -> str:
+        """Validate that MODEL_TYPE_CONFIGS is valid JSON"""
+        try:
+            json.loads(v)
+            return v
+        except json.JSONDecodeError as e:
+            raise ValueError(f"MODEL_TYPE_CONFIGS must be valid JSON: {e}")
+    
+    def get_model_type_configs(self) -> Dict[str, Dict[str, Any]]:
+        """Parse and return model type configurations"""
+        if not self.MODEL_TYPE_CONFIGS or self.MODEL_TYPE_CONFIGS == '{}':
+            return self._get_default_model_configs()
+        
+        try:
+            configs = json.loads(self.MODEL_TYPE_CONFIGS)
+            # Validate the structure
+            for model_type, config in configs.items():
+                if model_type not in [mt.value for mt in ModelType]:
+                    raise ValueError(f"Unknown model type: {model_type}")
+                if 'provider' not in config or 'model' not in config:
+                    raise ValueError(f"Model config for {model_type} must have 'provider' and 'model'")
+            return configs
+        except Exception as e:
+            logger.warning(f"Failed to parse MODEL_TYPE_CONFIGS, using defaults: {e}")
+            return self._get_default_model_configs()
+    
+    def _get_default_model_configs(self) -> Dict[str, Dict[str, Any]]:
+        """Default model configurations if none provided"""
+        return {
+            ModelType.RELEVANCE.value: {
+                "provider": self.DEFAULT_MODEL_PROVIDER.value,
+                "model": "gpt-3.5-turbo",
+                "max_tokens": 100,
+                "temperature": 0.1
+            },
+            ModelType.SIMPLE_QUERY.value: {
+                "provider": self.DEFAULT_MODEL_PROVIDER.value,
+                "model": "gpt-3.5-turbo",
+                "max_tokens": 500,
+                "temperature": 0.3
+            },
+            ModelType.COMPLEX_QUERY.value: {
+                "provider": self.DEFAULT_MODEL_PROVIDER.value,
+                "model": "gpt-4",
+                "max_tokens": 2000,
+                "temperature": 0.7
+            },
+            ModelType.CLARIFICATION.value: {
+                "provider": self.DEFAULT_MODEL_PROVIDER.value,
+                "model": "gpt-3.5-turbo",
+                "max_tokens": 300,
+                "temperature": 0.5
+            },
+            ModelType.EMBEDDING.value: {
+                "provider": self.DEFAULT_MODEL_PROVIDER.value,
+                "model": "text-embedding-ada-002",
+                "dimensions": 1536
+            }
+        }
 
     @field_validator("ENVIRONMENT")
     @classmethod

@@ -8,8 +8,6 @@ database sessions, authentication, rate limiting, and other shared functionality
 from app.core.config import get_settings
 from app.services.cache import SemanticCacheService
 from app.services.cache import ConversationCacheService
-from app.services.model_factory import ModelFactory
-from app.services.model_router import ModelRouter
 from app.services.rate_limiting import RateLimitService
 from app.services.vector_db import create_vector_db_service, VectorDBService
 from app.services.knowledge_base import create_knowledge_base_service, KnowledgeBaseService
@@ -28,6 +26,14 @@ from app.services.auth_service import AuthService
 from app.services.rate_limiting import RateLimitService
 from app.schemas.auth import UserProfile as User
 from app.utils.logging import get_logger
+
+from functools import lru_cache
+from typing import Optional
+from fastapi import Depends
+
+from app.core.config import get_settings, Settings
+from app.services.model_factory import ModelFactory
+from app.services.model_router import ModelRouter
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -445,36 +451,34 @@ async def get_knowledge_base_service() -> KnowledgeBaseService:
     return knowledge_service
 
 
-async def get_model_factory() -> ModelFactory:
+@lru_cache()
+def get_settings() -> Settings:
+    """Cached settings instance"""
+    return Settings()
+
+async def get_model_factory(
+    settings: Settings = Depends(get_settings)
+) -> ModelFactory:
     """Dependency injection for model factory"""
-    settings = get_settings()
-
-    # Create model factory with configuration
-    model_factory = ModelFactory(
-        default_provider=settings.DEFAULT_MODEL_PROVIDER,
-        model_configs=settings.MODEL_CONFIGS
-    )
+    factory = ModelFactory(settings)
     
     # Initialize if not already done
-    if not model_factory._initialized:
-        await model_factory.initialize()
+    if not factory._initialized:
+        await factory.initialize()
+    
+    return factory
 
-    return model_factory
-
-
-async def get_model_router() -> ModelRouter:
+async def get_model_router(
+    model_factory: ModelFactory = Depends(get_model_factory)
+) -> ModelRouter:
     """Dependency injection for model router"""
-    model_factory = await get_model_factory()
-
-    # Create model router with model factory (fix parameter name)
-    model_router = ModelRouter(model_service=model_factory)  # Changed from llm_factory to model_service
-
-    # Initialize if not already done
-    if not model_router._initialized:
-        await model_router.initialize()
+    router = ModelRouter(model_factory)
     
-    return model_router
-
+    # Initialize if not already done
+    if not router._initialized:
+        await router.initialize()
+    
+    return router
 
 async def get_rate_limit_service() -> RateLimitService:
     """Dependency injection for rate limiting service"""
