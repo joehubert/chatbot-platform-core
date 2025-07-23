@@ -566,7 +566,7 @@ async def _get_model_usage_stats(
     """Get model usage statistics."""
     
     # Query model usage
-    model_stats = db.query(
+    llm_model_stats = db.query(
         Message.llm_model_used,
         func.count(Message.id).label('usage_count'),
         func.avg(Message.processing_time_ms).label('avg_response_time'),
@@ -581,9 +581,9 @@ async def _get_model_usage_stats(
     ).group_by(Message.llm_model_used).all()
     
     results = []
-    for stat in model_stats:
+    for stat in llm_model_statsmodel_stats:
         results.append(ModelUsageStats(
-            model_name=stat.llm_model_used,
+            llm_model_name=stat.llm_model_used,
             usage_count=stat.usage_count,
             average_response_time_ms=round(float(stat.avg_response_time or 0), 2),
             total_tokens=stat.total_tokens or 0,

@@ -23,8 +23,8 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
-@router.get("/health", tags=["health"])
-@log_api_call(logger, "/health", "GET")
+@router.get("/", tags=["health"])
+@log_api_call(logger, "/", "GET")
 async def health_check(db: Session = Depends(get_async_db)):
     """
     Comprehensive health check endpoint.

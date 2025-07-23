@@ -44,7 +44,7 @@ class ModelConfig(BaseModel):
     """Configuration for individual LLM models"""
 
     provider: ModelProvider = Field(..., description="Model provider")
-    model_name: str = Field(..., description="Model identifier")
+    llm_name: str = Field(..., description="Model identifier")
     role: ModelRole = Field(..., description="Model role in the system")
     api_endpoint: Optional[str] = Field(None, description="Custom API endpoint")
     api_key_name: Optional[str] = Field(
@@ -73,17 +73,17 @@ class ModelConfig(BaseModel):
         default_factory=list, description="Fallback model identifiers"
     )
 
-    @field_validator("model_name")
+    @field_validator("llm_name")
     def validate_model_name(cls, v):
         if not v or v.isspace():
             raise ValueError("Model name cannot be empty")
         return v.strip()
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "provider": "openai",
-                "model_name": "gpt-3.5-turbo",
+                "llm_name": "gpt-3.5-turbo",
                 "role": "simple_query",
                 "api_endpoint": None,
                 "api_key_name": "OPENAI_API_KEY",
@@ -122,7 +122,7 @@ class RateLimitConfig(BaseModel):
     )
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "enabled": True,
                 "per_user_per_minute": 60,
@@ -151,7 +151,7 @@ class ModelProviderConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether provider is enabled")
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "provider": "openai",
                 "api_key_name": "OPENAI_API_KEY",
@@ -160,7 +160,7 @@ class ModelProviderConfig(BaseModel):
                 "models": {
                     "gpt-3.5": {
                         "provider": "openai",
-                        "model_name": "gpt-3.5-turbo",
+                        "llm_name": "gpt-3.5-turbo",
                         "role": "simple_query"
                     }
                 },
@@ -192,7 +192,7 @@ class CacheConfig(BaseModel):
     )
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "enabled": True,
                 "strategy": "vector_similarity",
@@ -226,7 +226,7 @@ class AuthConfig(BaseModel):
     )
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "session_timeout_minutes": 30,
                 "otp_expiry_minutes": 5,
@@ -273,7 +273,7 @@ class VectorDBConfig(BaseModel):
         return v
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "provider": "pinecone",
                 "api_key_name": "PINECONE_API_KEY",
@@ -315,7 +315,7 @@ class DocumentConfig(BaseModel):
         return v
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "max_file_size_mb": 50,
                 "allowed_file_types": ["pdf", "txt", "docx", "md"],
@@ -351,7 +351,7 @@ class ConfigUpdate(BaseModel):
     debug_mode: Optional[bool] = Field(None, description="Enable debug logging")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "rate_limiting": {
                     "per_user_per_minute": 100,
@@ -376,7 +376,7 @@ class ConfigValidationResult(BaseModel):
     )
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "valid": False,
                 "errors": [
@@ -437,12 +437,12 @@ class SystemConfig(BaseModel):
         return v
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "models": {
                     "gpt-3.5-simple": {
                         "provider": "openai",
-                        "model_name": "gpt-3.5-turbo",
+                        "llm_model_name": "gpt-3.5-turbo",
                         "role": "simple_query",
                         "max_tokens": 1000,
                         "temperature": 0.7,
@@ -493,13 +493,13 @@ class ConfigResponse(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "config": {
                     "models": {
                         "gpt-3.5-simple": {
                             "provider": "openai",
-                            "model_name": "gpt-3.5-turbo",
+                            "llm_model_name": "gpt-3.5-turbo",
                             "role": "simple_query"
                         }
                     },
@@ -554,7 +554,7 @@ class HealthStatus(BaseModel):
         return v
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "status": "healthy",
                 "timestamp": "2024-01-15T10:30:00Z",
@@ -600,10 +600,10 @@ class MetricsData(BaseModel):
         ..., ge=0, description="Total documents in knowledge base"
     )
     error_rate: float = Field(..., ge=0.0, le=1.0, description="Error rate percentage")
-    model_usage: Dict[str, int] = Field(..., description="Usage count by model")
+    llm_model_usage: Dict[str, int] = Field(..., description="Usage count by model")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "requests_per_minute": 45,
                 "average_response_time_ms": 1250.5,
@@ -611,7 +611,7 @@ class MetricsData(BaseModel):
                 "active_conversations": 12,
                 "total_documents": 156,
                 "error_rate": 0.02,
-                "model_usage": {
+                "llm_model_usage": {
                     "gpt-3.5-turbo": 320,
                     "gpt-4": 85,
                     "claude-3-sonnet": 45,

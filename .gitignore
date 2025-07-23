@@ -46,6 +46,8 @@ ipython_config.py
 celerybeat-schedule
 *.sage.py
 .env
+.env.local
+.env.production
 .venv
 env/
 venv/

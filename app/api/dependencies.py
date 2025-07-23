@@ -5,7 +5,7 @@ This module provides common dependencies used across API endpoints including
 database sessions, authentication, rate limiting, and other shared functionality.
 """
 
-from app.core.config import get_settings
+from app.core.config import get_settings, Settings
 from app.services.cache import SemanticCacheService
 from app.services.cache import ConversationCacheService
 from app.services.rate_limiting import RateLimitService
@@ -31,7 +31,6 @@ from functools import lru_cache
 from typing import Optional
 from fastapi import Depends
 
-from app.core.config import get_settings, Settings
 from app.services.model_factory import ModelFactory
 from app.services.model_router import ModelRouter
 

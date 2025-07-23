@@ -22,6 +22,8 @@ from app.api.dependencies import (
 )
 from app.core.config import get_settings
 from app.models.user import User
+from app.services.model_factory import ModelConfiguration
+
 from app.schemas.config import (
     AuthConfig,
     CacheConfig,
@@ -30,8 +32,6 @@ from app.schemas.config import (
     ConfigValidationResult,
     DocumentConfig,
     HealthStatus,
-    ModelConfig,
-    ModelProviderConfig,
     RateLimitConfig,
     SystemConfig,
     VectorDBConfig,
@@ -49,7 +49,7 @@ settings = get_settings()
 # Initialize services
 semantic_cache_service = SemanticCacheService()
 conversation_cache_service = ConversationCacheService()
-model_factory = ModelFactory()
+model_factory = ModelFactory(settings=settings)
 #model_router = ModelRouter()
 rate_limit_service = RateLimitService()
 vector_service = create_vector_db_service(
@@ -283,31 +283,31 @@ async def update_model_routing_rules(
 @router.post("/models/test")
 async def test_model_connection(
     provider: str,
-    model_name: str,
+    llm_model_name: str,
     test_message: Optional[str] = "Hello, this is a test message.",
     current_user: User = Depends(get_current_user),
 ):
     """
     Test connection to a specific model provider.
-    
+
     Useful for validating API keys and model availability.
     """
     try:
         result = await model_factory.test_model_connection(
             provider=provider,
-            model_name=model_name,
+            llm_model_name=llm_model_name,
             test_message=test_message
         )
-        
+
         return {
             "provider": provider,
-            "model": model_name,
+            "model": llm_model_name,
             "status": "success" if result.get("success") else "failed",
             "response_time_ms": result.get("response_time_ms"),
             "error": result.get("error"),
             "test_response": result.get("response")
         }
-        
+
     except Exception as e:
         logger.error(f"Error testing model connection: {str(e)}")
         raise HTTPException(
@@ -435,7 +435,7 @@ async def get_system_health(
 
 # Helper functions for configuration updates
 
-async def _update_model_config(model_config: ModelConfig):
+async def _update_model_config(model_config: ModelConfiguration):
     """Update model configuration."""
     # In a real implementation, this would update environment variables
     # or configuration storage and notify services of changes

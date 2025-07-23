@@ -10,28 +10,10 @@ import secrets
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic.networks import AnyHttpUrl
-from app.services.model_factory import ModelProvider
-from typing import Dict, Any, Optional
+from app.core.model_enums import ModelType, ModelProvider
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
-from enum import Enum
 import json
-
-class ModelType(Enum):
-    """Supported model types for different use cases"""
-    RELEVANCE = "relevance"
-    SIMPLE_QUERY = "simple_query" 
-    COMPLEX_QUERY = "complex_query"
-    CLARIFICATION = "clarification"
-    EMBEDDING = "embedding"
-
-class ModelProvider(Enum):
-    """Supported model providers"""
-    OPENAI = "openai"
-    ANTHROPIC = "anthropic"
-    HUGGINGFACE = "huggingface"
-    OLLAMA = "ollama"
-    AZURE_OPENAI = "azure_openai"
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
@@ -101,13 +83,19 @@ class Settings(BaseSettings):
 
     # Vector Database Configuration
     VECTOR_DB_TYPE: str = Field(default="pinecone", env="VECTOR_DB_TYPE")
-    PINECONE_API_KEY: Optional[str] = Field(default=None, env="PINECONE_API_KEY")
-    PINECONE_ENVIRONMENT: Optional[str] = Field(
-        default=None, env="PINECONE_ENVIRONMENT"
+    VECTOR_DB_HOST: str = Field(default="localhost", env="VECTOR_DB_HOST")
+    VECTOR_DB_PORT: int = Field(default=8000, env="VECTOR_DB_PORT")
+
+    VECTOR_DB_API_KEY: Optional[str] = Field(default=None, env="VECTOR_DB_API_KEY")
+    VECTOR_DB_ENVIRONMENT: Optional[str] = Field(
+        default=None, env="VECTOR_DB_ENVIRONMENT"
     )
-    PINECONE_INDEX_NAME: str = Field(
-        default="chatbot-knowledge", env="PINECONE_INDEX_NAME"
+    VECTOR_DB_INDEX_NAME: str = Field(
+        default="chatbot-knowledge", env="VECTOR_DB_INDEX_NAME"
     )
+
+    EMBEDDING_DIMENSION: int = Field(default=1536, env="EMBEDDING_DIMENSION")
+    VECTOR_SIMILARITY_METRIC: str = Field(default="cosine", env="VECTOR_SIMILARITY_METRIC")
 
     # Rate Limiting Configuration
     # Core requirements from reqs.md

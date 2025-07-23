@@ -3,8 +3,8 @@ from enum import Enum
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-
-from app.core.config import ModelType, ModelProvider, Settings
+from app.core.model_enums import ModelType, ModelProvider
+from app.core.config import Settings
 
 logger = logging.getLogger(__name__)
 

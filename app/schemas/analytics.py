@@ -184,8 +184,8 @@ class CacheMetrics(BaseModel):
 
 class ModelUsageStats(BaseModel):
     """Schema for LLM model usage statistics."""
-    
-    model_name: str = Field(..., description="Name of the LLM model")
+
+    llm_model_name: str = Field(..., description="Name of the LLM model")
     total_requests: int = Field(..., ge=0, description="Total requests to this model")
     total_tokens_input: int = Field(..., ge=0, description="Total input tokens")
     total_tokens_output: int = Field(..., ge=0, description="Total output tokens")
@@ -202,7 +202,7 @@ class ModelUsageStats(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "model_name": "gpt-3.5-turbo",
+                "llm_model_name": "gpt-3.5-turbo",
                 "total_requests": 1250,
                 "total_tokens_input": 425000,
                 "total_tokens_output": 185000,
@@ -382,7 +382,7 @@ class SystemAnalytics(BaseModel):
     
     date_range: DateRangeParams = Field(..., description="Analytics date range")
     performance: PerformanceMetrics = Field(..., description="System performance")
-    model_usage: List[ModelUsageStats] = Field(..., description="Model usage statistics")
+    llm_model_usage: List[ModelUsageStats] = Field(..., description="Model usage statistics")
     cache_metrics: CacheMetrics = Field(..., description="Cache performance")
     error_analytics: ErrorAnalytics = Field(..., description="Error analysis")
     cost_analytics: Optional[CostAnalytics] = Field(None, description="Cost analysis")
@@ -398,7 +398,7 @@ class SystemAnalytics(BaseModel):
                     "end_date": "2024-01-31T23:59:59Z"
                 },
                 "performance": {},
-                "model_usage": [],
+                "llm_model_usage": [],
                 "cache_metrics": {},
                 "error_analytics": {},
                 "cost_analytics": {},

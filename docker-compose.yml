@@ -78,7 +78,7 @@ services:
       target: ${BUILD_TARGET:-development}
     container_name: ${COMPOSE_PROJECT_NAME:-chatbot-platform}-api
     env_file:
-      - .env
+      - .env.local
     environment:
       # Problem: default credentials are in a file committed to the repo
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-chatbot_user}:${POSTGRES_PASSWORD:-chatbot_password}@postgres:5432/${POSTGRES_DB:-chatbot_platform}
